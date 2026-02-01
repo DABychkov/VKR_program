@@ -1,44 +1,123 @@
-# VKR_program
+# VKR_program - GOST Document Validator
 
-GOST Document Validator - A Python application for validating Russian technical documents according to GOST standards.
+Программа для автоматизированной проверки документов научно-исследовательских работ на соответствие требованиям **ГОСТ 7.32-2017** (межгосударственный стандарт).
 
-## Project Structure
+## Описание
+
+GOST Document Validator - Python приложение для валидации научных отчетов, ВКР и НИР в соответствии с российскими стандартами оформления документов. Программа проверяет:
+
+- **Титульный лист** - структура, реквизиты, грифы согласования
+- **Объем и структура** - наличие всех обязательных разделов
+- **Реферат** - объем, ключевые слова, содержание
+- **Содержание** - нумерация, номера страниц
+- **Термины и определения** - оформление, алфавитный порядок
+- **Сокращения и обозначения** - структура, формат
+- **Общие требования** - форматирование, шрифты, интервалы
+
+## Функциональность
+
+ Парсинг DOCX документов  
+ Валидация структуры по ГОСТ 7.32-2017  
+ Проверка титульного листа  
+ Анализ реферата и ключевых слов  
+ Верификация содержания  
+ Детальный отчет об ошибках и рекомендациях  
+
+## Структура проекта
 
 ```
 gost_validator/
-├── config/          # Configuration settings
-├── models/          # Data models
-├── services/        # Business logic services
-├── utils/           # Utility functions
-├── validators/      # Validation rules
-└── main.py          # Entry point
+├── config/
+│   ├── __init__.py
+│   └── settings.py              # Конфигурация и константы
+├── models/
+│   ├── __init__.py
+│   ├── document_structure.py     # Модели структуры документа
+│   └── validation_result.py      # Модель результатов валидации
+├── services/
+│   ├── __init__.py
+│   ├── document_parser.py        # Парсинг DOCX файлов
+│   └── validation_service.py     # Основная логика валидации
+├── utils/
+│   ├── __init__.py
+│   ├── text_utils.py             # Утилиты для работы с текстом
+│   └── title_page_utils.py       # Утилиты для титульного листа
+├── validators/
+│   ├── __init__.py
+│   ├── base_validator.py         # Базовый класс валидатора
+│   └── title_page_validators.py  # Валидаторы титульного листа
+├── main.py                       # Точка входа приложения
+└── requirements.txt
 ```
 
-## Installation
+## Установка
 
-1. Create virtual environment:
+### 1. Клонирование репозитория
+```bash
+git clone https://github.com/DABychkov/VKR_program.git
+cd VKR_program
+```
+
+### 2. Создание виртуального окружения
 ```bash
 python -m venv .venv
-.venv\Scripts\activate  # Windows
-source .venv/bin/activate  # Linux/Mac
+
+# Windows
+.venv\Scripts\activate
+
+# Linux/Mac
+source .venv/bin/activate
 ```
 
-2. Install dependencies:
+### 3. Установка зависимостей
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
+## Использование
 
 ```bash
-python gost_validator/main.py
+python gost_validator/main.py <path_to_document.docx>
 ```
 
-## Requirements
+### Пример вывода:
+```
+Validation Report
+================
+Document: report.docx
+Status:  WARNINGS FOUND
+
+Title Page Validation:
+   Organization name found
+   Approval signatures present
+   UDC index format issue
+   Registration number missing
+
+Abstract Validation:
+   Keywords present
+   Abstract length < 850 characters (recommended)
+
+Content Validation:
+   Table of contents present
+   Introduction found
+   Conclusion found
+```
+
+## Требования
 
 - Python 3.8+
 - python-docx>=0.8.11
 
-## Author
+## Документация
 
-DABychkov
+- [Техническое задание](TZ.md) - полное описание требований ГОСТ
+- [GOST 7.32-2017](docs/GOST_7_32_2017.md) - справочник по стандарту
+
+## Автор
+
+**DABychkov**  
+МГТУ им. Н.Э. Баумана
+
+## Лицензия
+
+MIT
