@@ -11,6 +11,7 @@ if str(BASE_DIR) not in sys.path:
 from gost_validator.services.document_parser import DocumentParser
 from gost_validator.services.validation_service import ValidationService
 from gost_validator.validators.title_page_validators import TitlePageValidator
+from gost_validator.validators.executor_list_validator import ExecutorListValidator
 from gost_validator.models.validation_result import Severity
 
 
@@ -28,6 +29,7 @@ def validate_document(file_path: str) -> None:
     # Регистрируем валидаторы
     service = ValidationService()
     service.register(TitlePageValidator())
+    service.register(ExecutorListValidator())
 
     # Запускаем проверку
     results = service.validate(doc)

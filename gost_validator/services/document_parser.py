@@ -10,6 +10,7 @@ from ..models.document_structure import DocumentStructure
 class DocumentParser:
     # Ключевые секции по ГОСТ 7.32
     SECTION_KEYWORDS = [
+        "СПИСОК ИСПОЛНИТЕЛЕЙ",
         "РЕФЕРАТ",
         "СОДЕРЖАНИЕ",
         "ТЕРМИНЫ И ОПРЕДЕЛЕНИЯ",
@@ -17,7 +18,8 @@ class DocumentParser:
         "ВВЕДЕНИЕ",
         "ЗАКЛЮЧЕНИЕ",
         "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ",
-        "ПРИЛОЖЕНИЕ"
+        "ПРИЛОЖЕНИЕ",
+        "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ"  # Альтернативный вариант
     ]
     
     def parse(self, file_path: str) -> DocumentStructure:
@@ -78,9 +80,33 @@ class DocumentParser:
         return sections
     
     def _is_section_header(self, text: str) -> bool:
-        """Проверяет, является ли текст заголовком секции"""
-        text_upper = text.strip().upper()
-        return any(keyword in text_upper for keyword in self.SECTION_KEYWORDS)
+        """Проверяет, является ли текст заголовком секции."""
+        text_strip = text.strip()
+        text_upper = text_strip.upper()
+        
+        # Заголовок должен:
+        # 1. Содержать ключевое слово
+        # 2. Быть капсом
+        # 3. Быть коротким (не более 60 символов - чтобы отсечь длинные строки)
+        # 4. Не содержать точек/отточий (чтобы отличить от содержания)
+        
+        if len(text_strip) > 60:
+            return False
+        
+        if not text_strip.isupper():
+            return False
+        
+        # Проверяем что это чистое ключевое слово (или почти)
+        for keyword in self.SECTION_KEYWORDS:
+            if keyword in text_upper:
+                # Убираем пробелы и сравниваем длину - должно быть близко к ключевому слову
+                clean_text = text_upper.replace(' ', '').replace('\t', '')
+                clean_keyword = keyword.replace(' ', '')
+                # Допускаем небольшое отличие (например, добавочные пробелы)
+                if abs(len(clean_text) - len(clean_keyword)) <= 5:
+                    return True
+        
+        return False
     
     def _is_main_section_start(self, text: str) -> bool:
         """Проверяет, началась ли основная часть (номер раздела)."""
