@@ -50,4 +50,5 @@ htmlcov/
 Thumbs.db
 
 # Project specific
-*.txt (except requirements.txt)
+*.txt
+!requirements.txt

@@ -3,6 +3,10 @@
 import os
 import re
 from docx import Document
+from docx.oxml.table import CT_Tbl
+from docx.oxml.text.paragraph import CT_P
+from docx.table import Table
+from docx.text.paragraph import Paragraph
 
 from ..models.document_structure import DocumentStructure
 
@@ -29,9 +33,9 @@ class DocumentParser:
             raise ValueError("Ожидается файл .docx")
 
         doc = Document(file_path)
-        
-        # Собираем все абзацы
-        all_paragraphs = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
+
+        # Собираем весь текст документа в порядке следования блоков (абзацы + строки таблиц).
+        all_paragraphs = self._extract_text_blocks(doc)
         
         # Титульник = первые ~30 абзацев
         title_page_text = "\n".join(all_paragraphs[:30])
@@ -45,14 +49,49 @@ class DocumentParser:
             sections=sections,
             all_paragraphs=all_paragraphs
         )
+
+    def _extract_text_blocks(self, doc: Document) -> list[str]:
+        """Извлекает текстовые блоки документа (абзацы и таблицы) в исходном порядке."""
+        blocks: list[str] = []
+
+        for child in doc.element.body.iterchildren():
+            if isinstance(child, CT_P):
+                paragraph = Paragraph(child, doc)
+                text = paragraph.text.strip()
+                if text:
+                    blocks.append(text)
+                continue
+
+            if isinstance(child, CT_Tbl):
+                table = Table(child, doc)
+                for row in table.rows:
+                    cells = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+                    if not cells:
+                        continue
+                    # Храним строку таблицы как TSV-подобную запись для последующего парсинга.
+                    blocks.append("\t".join(cells))
+
+        return blocks
     
     def _find_sections(self, paragraphs: list[str]) -> dict[str, str]:
         """Находит секции документа (РЕФЕРАТ, ВВЕДЕНИЕ и т.д.)"""
         sections = {}
         current_section = None
         current_text = []
+
+        def _is_contents_section(section_name: str | None) -> bool:
+            if not section_name:
+                return False
+            return "СОДЕРЖАНИЕ" in section_name.upper()
         
         for para in paragraphs:
+            # Внутри "СОДЕРЖАНИЕ" строки вида "ВВЕДЕНИЕ ... 9" или
+            # "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ 67" являются элементами оглавления,
+            # а не началом новой секции.
+            if _is_contents_section(current_section) and self._is_contents_item_line(para):
+                current_text.append(para)
+                continue
+
             # Проверяем, это заголовок секции?
             if self._is_section_header(para):
                 # Сохраняем предыдущую секцию
@@ -64,7 +103,9 @@ class DocumentParser:
             elif current_section:
                 # Проверяем, не началась ли основная часть (номер раздела)
                 # Паттерны: "1 НАЗВАНИЕ", "1. НАЗВАНИЕ", "Глава 1"
-                if self._is_main_section_start(para):
+                # ВАЖНО: внутри секции "СОДЕРЖАНИЕ" такие строки нормальны,
+                # поэтому преждевременно секцию не обрываем.
+                if self._is_main_section_start(para) and not _is_contents_section(current_section):
                     # Основная часть началась - сохраняем текущую секцию и прекращаем
                     sections[current_section] = "\n".join(current_text)
                     current_section = None
@@ -78,6 +119,22 @@ class DocumentParser:
             sections[current_section] = "\n".join(current_text)
         
         return sections
+
+    def _is_contents_item_line(self, text: str) -> bool:
+        """Проверяет, является ли строка элементом оглавления с номером страницы."""
+        text_strip = text.strip()
+        if not text_strip:
+            return False
+
+        # Примеры:
+        # "ВВЕДЕНИЕ 9"
+        # "Глава 1. Теория........5"
+        # "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ\t38"
+        if not re.search(r"\d+\s*$", text_strip):
+            return False
+
+        # Должен быть некоторый текст до номера страницы.
+        return bool(re.search(r"\D\s*\d+\s*$", text_strip))
     
     def _is_section_header(self, text: str) -> bool:
         """Проверяет, является ли текст заголовком секции."""
@@ -92,7 +149,7 @@ class DocumentParser:
         
         if len(text_strip) > 60:
             return False
-        
+
         if not text_strip.isupper():
             return False
         
@@ -105,6 +162,8 @@ class DocumentParser:
                 # Допускаем небольшое отличие (например, добавочные пробелы)
                 if abs(len(clean_text) - len(clean_keyword)) <= 5:
                     return True
+
+        return False
         
         return False
     
@@ -120,3 +179,4 @@ class DocumentParser:
             r'^ГЛАВА\s+\d+',  # "ГЛАВА 1"
         ]
         return any(re.match(pattern, text, re.IGNORECASE) for pattern in patterns)
+

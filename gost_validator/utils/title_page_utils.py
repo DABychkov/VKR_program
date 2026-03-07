@@ -116,19 +116,23 @@ def check_centered_alignment(para_obj) -> bool:
 
 def find_place_and_year(paragraphs: list[str]) -> tuple[str | None, int | None]:
     """
-    Ищет место и год в нижней части титульника (последние 5 строк).
+    Ищет место и год на титульнике.
     
-    Формат: "Москва 2026" или "Москва, 2026"
+    Формат: "Москва 2026" или "Москва, 2026" или просто "2026"
+    Ищет снизу вверх по всем строкам титульника.
     Возвращает: (место, год)
     """
-    # Проверяем последние 5 абзацев
-    for para in reversed(paragraphs[-5:]):
-        # Ищем год (4 цифры)
-        year_match = re.search(r'\b(20\d{2})\b', para)
+    # Ищем год во всех абзацах снизу вверх
+    for para in reversed(paragraphs):
+        if not para.strip():
+            continue
+        
+        # Ищем год (4 цифры, начинается с 19 или 20)
+        year_match = re.search(r'\b(19\d{2}|20\d{2})\b', para)
         if year_match:
             year = int(year_match.group(1))
             # Место = все что до года
-            place = re.sub(r'\b20\d{2}\b', '', para).strip(' ,')
-            return place, year
+            place = re.sub(r'\b(19\d{2}|20\d{2})\b', '', para).strip(' ,')
+            return place if place else None, year
     
     return None, None

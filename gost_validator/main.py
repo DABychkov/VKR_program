@@ -12,6 +12,10 @@ from gost_validator.services.document_parser import DocumentParser
 from gost_validator.services.validation_service import ValidationService
 from gost_validator.validators.title_page_validators import TitlePageValidator
 from gost_validator.validators.executor_list_validator import ExecutorListValidator
+from gost_validator.validators.abstract_validator import AbstractValidator
+from gost_validator.validators.contents_validator import ContentsValidator
+from gost_validator.validators.terms_validator import TermsValidator
+from gost_validator.validators.abbreviations_validator import AbbreviationsValidator
 from gost_validator.models.validation_result import Severity
 
 
@@ -30,6 +34,10 @@ def validate_document(file_path: str) -> None:
     service = ValidationService()
     service.register(TitlePageValidator())
     service.register(ExecutorListValidator())
+    service.register(AbstractValidator())
+    service.register(ContentsValidator())
+    service.register(TermsValidator())
+    service.register(AbbreviationsValidator())
 
     # Запускаем проверку
     results = service.validate(doc)
