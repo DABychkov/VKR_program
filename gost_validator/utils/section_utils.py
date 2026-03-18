@@ -1,6 +1,6 @@
 """Общие функции поиска и проверки секций документа."""
 
-from typing import Literal
+from typing import Any, Literal
 
 from ..models.validation_result import Severity, ValidationResult
 
@@ -68,7 +68,7 @@ def find_first_by_key(
     items: list,
     key_fn: callable,
     search_value: str,
-) -> any | None:
+) -> Any | None:
     """
     Найти первый элемент где key_fn(item) содержит search_value.
     
