@@ -2,6 +2,10 @@
 
 from ..models.document_structure import DocumentStructure
 from ..models.validation_result import Severity, ValidationResult
+from ..config.validation_constants import (
+    TERMS_SECTION_KEYWORDS,
+    COMBINED_DEFINITIONS_SECTION_KEYWORDS,
+)
 from ..utils.definitions_utils import (
     extract_definition_items,
     find_intro_line,
@@ -9,14 +13,17 @@ from ..utils.definitions_utils import (
     intro_phrase_matches,
     is_alphabetical,
 )
+from ..utils.section_utils import (
+    find_section_text_by_keywords,
+    get_non_empty_lines,
+    has_section_by_keywords,
+)
 from .base_validator import BaseValidator
 
 
 class TermsValidator(BaseValidator):
     """Проверка структурного элемента 1.6 по ТЗ."""
 
-    SECTION_NAME = "ТЕРМИНЫ И ОПРЕДЕЛЕНИЯ"
-    COMBINED_SECTION_NAME = "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ"
     EXPECTED_INTRO = (
         "В настоящем отчете о НИР применяют следующие термины "
         "с соответствующими определениями"
@@ -25,8 +32,8 @@ class TermsValidator(BaseValidator):
     def validate(self, document: DocumentStructure) -> ValidationResult:
         result = ValidationResult(validator_name="TermsValidator")
 
-        section_name, section_text = self._find_terms_section(document.sections)
-        has_combined = self._has_combined_section(document.sections)
+        section_text = find_section_text_by_keywords(document.sections, TERMS_SECTION_KEYWORDS)
+        has_combined = has_section_by_keywords(document.sections, COMBINED_DEFINITIONS_SECTION_KEYWORDS)
 
         # Условно-обязательный: отсутствие = рекомендация, если нет комбинированного варианта.
         if not section_text:
@@ -38,7 +45,7 @@ class TermsValidator(BaseValidator):
                 )
             return result
 
-        lines = [line for line in section_text.split("\n") if line.strip()]
+        lines = get_non_empty_lines(section_text, strip=False)
         intro = find_intro_line(lines)
         if intro and not intro_phrase_matches(intro, self.EXPECTED_INTRO, min_common_words=9):
             result.add_error(
@@ -86,11 +93,4 @@ class TermsValidator(BaseValidator):
 
         return result
 
-    def _find_terms_section(self, sections: dict[str, str]) -> tuple[str | None, str | None]:
-        for name, text in sections.items():
-            if self.SECTION_NAME in name.upper():
-                return name, text
-        return None, None
-
-    def _has_combined_section(self, sections: dict[str, str]) -> bool:
-        return any(self.COMBINED_SECTION_NAME in name.upper() for name in sections)
+    

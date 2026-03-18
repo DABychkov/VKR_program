@@ -1,10 +1,14 @@
 """Утилиты для разбора разделов терминов и сокращений."""
 
-import re
 from typing import Optional
 
-
-_DASHES = "-–—"
+from ..config.regex_patterns import (
+    RE_DEFINITION_ITEM_COLON,
+    RE_DEFINITION_ITEM_DASH,
+    RE_LEFT_INDENTATION,
+)
+from .regex_utils import split_words_by_non_word
+from .section_utils import get_non_empty_lines
 
 
 def normalize_text(text: str) -> str:
@@ -28,8 +32,8 @@ def intro_phrase_matches(actual_line: str, expected_phrase: str, min_common_word
     Используем совпадение по количеству ключевых слов, а не точное равенство,
     чтобы переживать мелкие вариации формулировки.
     """
-    actual_words = [w for w in re.split(r"\W+", normalize_text(actual_line)) if w]
-    expected_words = [w for w in re.split(r"\W+", normalize_text(expected_phrase)) if w]
+    actual_words = split_words_by_non_word(normalize_text(actual_line))
+    expected_words = split_words_by_non_word(normalize_text(expected_phrase))
 
     if not actual_words or not expected_words:
         return False
@@ -63,7 +67,7 @@ def split_definition_item(line: str) -> Optional[tuple[str, str]]:
                 return left, right
 
     # Приоритет 2: тире/дефис
-    dash_match = re.match(rf"^(?P<left>.+?)\s*[{_DASHES}]\s*(?P<right>.+)$", raw)
+    dash_match = RE_DEFINITION_ITEM_DASH.match(raw)
     if dash_match:
         left = dash_match.group("left").strip()
         right = dash_match.group("right").strip()
@@ -71,7 +75,7 @@ def split_definition_item(line: str) -> Optional[tuple[str, str]]:
             return left, right
 
     # Приоритет 3: двоеточие (на случай локальных шаблонов)
-    colon_match = re.match(r"^(?P<left>.+?)\s*:\s*(?P<right>.+)$", raw)
+    colon_match = RE_DEFINITION_ITEM_COLON.match(raw)
     if colon_match:
         left = colon_match.group("left").strip()
         right = colon_match.group("right").strip()
@@ -91,7 +95,7 @@ def extract_definition_items(section_text: str) -> list[tuple[str, str, str]]:
     - raw_line: исходная строка (для диагностики)
     """
     items: list[tuple[str, str, str]] = []
-    for line in section_text.split("\n"):
+    for line in get_non_empty_lines(section_text, strip=False):
         parsed = split_definition_item(line)
         if parsed:
             items.append((parsed[0], parsed[1], line))
@@ -108,4 +112,4 @@ def is_alphabetical(values: list[str]) -> bool:
 
 def has_left_indentation(raw_line: str) -> bool:
     """Проверяет наличие отступа перед термином/сокращением."""
-    return bool(re.match(r"^\s+", raw_line))
+    return bool(RE_LEFT_INDENTATION.match(raw_line))

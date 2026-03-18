@@ -16,6 +16,8 @@ from gost_validator.validators.abstract_validator import AbstractValidator
 from gost_validator.validators.contents_validator import ContentsValidator
 from gost_validator.validators.terms_validator import TermsValidator
 from gost_validator.validators.abbreviations_validator import AbbreviationsValidator
+from gost_validator.validators.references_validator import ReferencesValidator
+from gost_validator.validators.appendices_validator import AppendicesValidator
 from gost_validator.models.validation_result import Severity
 
 
@@ -38,6 +40,8 @@ def validate_document(file_path: str) -> None:
     service.register(ContentsValidator())
     service.register(TermsValidator())
     service.register(AbbreviationsValidator())
+    service.register(ReferencesValidator())
+    service.register(AppendicesValidator())
 
     # Запускаем проверку
     results = service.validate(doc)

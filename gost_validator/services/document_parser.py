@@ -1,30 +1,30 @@
 """Парсер DOCX: извлекает титульник и находит секции документа."""
 
 import os
-import re
 from docx import Document
 from docx.oxml.table import CT_Tbl
 from docx.oxml.text.paragraph import CT_P
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 
+from ..config.validation_constants import (
+    PARSER_SECTION_KEYWORDS,
+    SECTION_CONTENTS,
+    SECTION_REFERENCES,
+)
+from ..config.regex_patterns import (
+    RE_APPENDIX_HEADER,
+    RE_LINE_ENDS_WITH_DIGITS,
+    RE_MAIN_SECTION_START_PATTERNS,
+    RE_NON_DIGIT_BEFORE_PAGE,
+    RE_NUMBERED_LIST_ITEM_LINE,
+)
 from ..models.document_structure import DocumentStructure
 
 
 class DocumentParser:
     # Ключевые секции по ГОСТ 7.32
-    SECTION_KEYWORDS = [
-        "СПИСОК ИСПОЛНИТЕЛЕЙ",
-        "РЕФЕРАТ",
-        "СОДЕРЖАНИЕ",
-        "ТЕРМИНЫ И ОПРЕДЕЛЕНИЯ",
-        "ПЕРЕЧЕНЬ СОКРАЩЕНИЙ И ОБОЗНАЧЕНИЙ",
-        "ВВЕДЕНИЕ",
-        "ЗАКЛЮЧЕНИЕ",
-        "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ",
-        "ПРИЛОЖЕНИЕ",
-        "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ"  # Альтернативный вариант
-    ]
+    SECTION_KEYWORDS = PARSER_SECTION_KEYWORDS
     
     def parse(self, file_path: str) -> DocumentStructure:
         if not os.path.exists(file_path):
@@ -82,13 +82,24 @@ class DocumentParser:
         def _is_contents_section(section_name: str | None) -> bool:
             if not section_name:
                 return False
-            return "СОДЕРЖАНИЕ" in section_name.upper()
-        
+            return SECTION_CONTENTS in section_name.upper()
+
+        def _is_references_section(section_name: str | None) -> bool:
+            if not section_name:
+                return False
+            return SECTION_REFERENCES in section_name.upper()
+
         for para in paragraphs:
             # Внутри "СОДЕРЖАНИЕ" строки вида "ВВЕДЕНИЕ ... 9" или
             # "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ 67" являются элементами оглавления,
             # а не началом новой секции.
             if _is_contents_section(current_section) and self._is_contents_item_line(para):
+                current_text.append(para)
+                continue
+
+            # Внутри "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ" строки вида
+            # "4 Антопольский А.Б. ..." — это записи, а не заголовки разделов.
+            if _is_references_section(current_section) and self._is_reference_item_line(para):
                 current_text.append(para)
                 continue
 
@@ -120,6 +131,12 @@ class DocumentParser:
         
         return sections
 
+    def _is_reference_item_line(self, text: str) -> bool:
+        """Проверяет, является ли строка нумерованной записью списка источников."""
+        # Форматы: "1 Автор", "1. Автор", "12 Название"
+        # Макс. 3 цифры — чтобы годы (2006, 2009 и т.д.) не совпадали.
+        return bool(RE_NUMBERED_LIST_ITEM_LINE.match(text.strip()))
+
     def _is_contents_item_line(self, text: str) -> bool:
         """Проверяет, является ли строка элементом оглавления с номером страницы."""
         text_strip = text.strip()
@@ -130,16 +147,19 @@ class DocumentParser:
         # "ВВЕДЕНИЕ 9"
         # "Глава 1. Теория........5"
         # "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ\t38"
-        if not re.search(r"\d+\s*$", text_strip):
+        if not RE_LINE_ENDS_WITH_DIGITS.search(text_strip):
             return False
 
         # Должен быть некоторый текст до номера страницы.
-        return bool(re.search(r"\D\s*\d+\s*$", text_strip))
+        return bool(RE_NON_DIGIT_BEFORE_PAGE.search(text_strip))
     
     def _is_section_header(self, text: str) -> bool:
         """Проверяет, является ли текст заголовком секции."""
         text_strip = text.strip()
         text_upper = text_strip.upper()
+
+        if self._is_appendix_header(text_strip):
+            return True
         
         # Заголовок должен:
         # 1. Содержать ключевое слово
@@ -164,19 +184,17 @@ class DocumentParser:
                     return True
 
         return False
-        
-        return False
+
+    def _is_appendix_header(self, text: str) -> bool:
+        """Проверяет, является ли строка заголовком приложения."""
+        text_strip = text.strip()
+        if len(text_strip) > 80:
+            return False
+
+        return bool(RE_APPENDIX_HEADER.match(text_strip))
     
     def _is_main_section_start(self, text: str) -> bool:
         """Проверяет, началась ли основная часть (номер раздела)."""
         text = text.strip()
-        # Паттерны: "1 НАЗВАНИЕ", "1. НАЗВАНИЕ", "Глава 1", "ГЛАВА 1"
-        import re
-        patterns = [
-            r'^\d+\s+[А-ЯA-Z]',  # "1 ТЕОРЕТИЧЕСКАЯ"
-            r'^\d+\.\s+[А-ЯA-Z]',  # "1. Теория"
-            r'^Глава\s+\d+',  # "Глава 1"
-            r'^ГЛАВА\s+\d+',  # "ГЛАВА 1"
-        ]
-        return any(re.match(pattern, text, re.IGNORECASE) for pattern in patterns)
+        return any(pattern.match(text) for pattern in RE_MAIN_SECTION_START_PATTERNS)
 
