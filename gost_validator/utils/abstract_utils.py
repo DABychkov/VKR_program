@@ -9,6 +9,7 @@ from ..config.regex_patterns import (
 )
 from ..models.validation_result import Severity, ValidationResult
 from .common.regex_utils import extract_int_by_pattern
+from .common.text_utils import count_non_whitespace_characters
 
 
 def extract_volume_metrics(text: str) -> dict[str, int | None]:
@@ -121,17 +122,6 @@ def find_text_keywords_in_abstract(text: str) -> dict[str, bool]:
     return keywords
 
 
-def count_abstract_characters(abstract_text: str) -> int:
-    """
-    Считает печатные знаки в реферате (буквы, цифры, пунктуация).
-    
-    Исключает только пробелы и переносы строк.
-    """
-    # Убираем только пробелы и переносы строк
-    clean_text = abstract_text.replace(' ', '').replace('\n', '').replace('\t', '')
-    return len(clean_text)
-
-
 def check_volume_info(lines: list[str], result: ValidationResult) -> None:
     """Проверка сведений об объеме отчета в первых строках реферата."""
     first_part = '\n'.join(lines[:5])
@@ -213,7 +203,7 @@ def check_abstract_text(abstract_text: str, result: ValidationResult) -> None:
 
 def check_abstract_size(abstract_text: str, result: ValidationResult, min_abstract_size: int) -> None:
     """Проверка того, что объем реферата достаточный."""
-    char_count = count_abstract_characters(abstract_text)
+    char_count = count_non_whitespace_characters(abstract_text)
 
     if char_count < min_abstract_size:
         result.add_error(

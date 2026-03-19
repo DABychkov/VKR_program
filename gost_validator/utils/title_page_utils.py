@@ -6,6 +6,7 @@ from ..config.regex_patterns import RE_INITIALS, RE_YEAR_1900_2099
 from ..models.validation_result import Severity, ValidationResult
 from .common.regex_utils import extract_int_by_pattern
 from .common.section_utils import find_first_index_contains, text_contains_any
+from .common.text_utils import is_uppercase_text
 
 
 def find_organization_block(paragraphs: list[str], start_idx: int = 0, end_idx: int = 15) -> list[str]:
@@ -92,30 +93,6 @@ def extract_initials(text: str) -> list[str]:
     Паттерн: заглавная буква + точка + заглавная буква + точка
     """
     return RE_INITIALS.findall(text)
-
-
-def is_uppercase_text(text: str) -> bool:
-    """
-    Проверяет, что текст написан заглавными буквами (капсом).
-    
-    Игнорирует цифры, пробелы и знаки препинания.
-    """
-    # Убираем не-буквы
-    letters_only = ''.join(c for c in text if c.isalpha())
-    if not letters_only:
-        return False
-    return letters_only.isupper()
-
-
-def check_centered_alignment(para_obj) -> bool:
-    """
-    Проверяет, что абзац выровнен по центру.
-    
-    Работает с объектом Paragraph из python-docx.
-    """
-    # Если у абзаца есть alignment и он WD_ALIGN_PARAGRAPH.CENTER
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-    return para_obj.alignment == WD_ALIGN_PARAGRAPH.CENTER
 
 
 def find_place_and_year(paragraphs: list[str]) -> tuple[str | None, int | None]:

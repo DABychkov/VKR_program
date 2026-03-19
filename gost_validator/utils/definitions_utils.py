@@ -7,39 +7,12 @@ from ..config.regex_patterns import (
     RE_DEFINITION_ITEM_DASH,
     RE_LEFT_INDENTATION,
 )
-from .common.regex_utils import split_words_by_non_word
 from .common.section_utils import get_non_empty_lines
-
-
-def normalize_text(text: str) -> str:
-    """Нормализует пробелы/регистр для сравнений."""
-    return " ".join(text.replace("\t", " ").split()).strip().lower()
-
-
-def find_intro_line(lines: list[str], search_depth: int = 5) -> str:
-    """Берет первую непустую строку из начала секции (после заголовка)."""
-    for line in lines[:search_depth]:
-        clean = line.strip()
-        if clean:
-            return clean
-    return ""
-
-
-def intro_phrase_matches(actual_line: str, expected_phrase: str, min_common_words: int = 9) -> bool:
-    """
-    Проверяет, что вводная фраза близка к ожидаемой.
-
-    Используем совпадение по количеству ключевых слов, а не точное равенство,
-    чтобы переживать мелкие вариации формулировки.
-    """
-    actual_words = split_words_by_non_word(normalize_text(actual_line))
-    expected_words = split_words_by_non_word(normalize_text(expected_phrase))
-
-    if not actual_words or not expected_words:
-        return False
-
-    common = sum(1 for word in expected_words if word in actual_words)
-    return common >= min_common_words
+from .common.text_utils import (
+    find_intro_line,
+    intro_phrase_matches,
+    is_alphabetical,
+)
 
 
 def split_definition_item(line: str) -> Optional[tuple[str, str]]:
@@ -100,14 +73,6 @@ def extract_definition_items(section_text: str) -> list[tuple[str, str, str]]:
         if parsed:
             items.append((parsed[0], parsed[1], line))
     return items
-
-
-def is_alphabetical(values: list[str]) -> bool:
-    """Проверяет алфавитный порядок без учета регистра."""
-    normalized = [normalize_text(v) for v in values if v.strip()]
-    if len(normalized) < 2:
-        return True
-    return normalized == sorted(normalized)
 
 
 def has_left_indentation(raw_line: str) -> bool:

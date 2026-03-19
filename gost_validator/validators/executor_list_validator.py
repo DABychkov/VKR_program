@@ -1,7 +1,7 @@
 """Валидатор списка исполнителей по ГОСТ 7.32-2017."""
 
 from ..models.document_structure import DocumentStructure
-from ..models.validation_result import ValidationResult, Severity
+from ..models.validation_result import ValidationResult
 from ..config.regex_patterns import RE_EXECUTOR_ON_TITLE, RE_INITIALS
 from ..config.validation_constants import EXECUTOR_SECTION_KEYWORDS
 from ..utils.executor_validation_utils import check_executor_section, check_title_page_executor
