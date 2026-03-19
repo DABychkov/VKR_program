@@ -7,8 +7,8 @@ from ..config.regex_patterns import (
     RE_DEFINITION_ITEM_DASH,
     RE_LEFT_INDENTATION,
 )
-from .regex_utils import split_words_by_non_word
-from .section_utils import get_non_empty_lines
+from .common.regex_utils import split_words_by_non_word
+from .common.section_utils import get_non_empty_lines
 
 
 def normalize_text(text: str) -> str:

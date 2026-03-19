@@ -3,7 +3,8 @@
 from re import Pattern
 
 from ..models.validation_result import Severity, ValidationResult
-from .regex_utils import count_pattern_matches
+from .common.regex_utils import count_pattern_matches
+from .common.section_utils import any_item_contains, any_item_contains_all, text_contains_any
 
 
 def check_title_page_executor(
@@ -12,7 +13,7 @@ def check_title_page_executor(
     executor_on_title_pattern: Pattern[str],
 ) -> None:
     """Проверяет наличие исполнителя на титульнике (если список отсутствует)."""
-    if "исполнитель" not in title_page.lower():
+    if not text_contains_any(title_page, ["исполнитель"]):
         result.add_error(
             Severity.RECOMMENDATION,
             'Не найдена секция "СПИСОК ИСПОЛНИТЕЛЕЙ" и нет фразы "Исполнитель:" на титульнике. '
@@ -33,7 +34,7 @@ def check_executor_section(
     initials_pattern: Pattern[str],
 ) -> None:
     """Проверяет структуру и содержание секции СПИСОК ИСПОЛНИТЕЛЕЙ."""
-    if not any('исполнител' in line.lower() for line in lines):
+    if not any_item_contains(lines, "исполнител"):
         result.add_error(
             Severity.CRITICAL,
             'В списке исполнителей отсутствует роль "Исполнители:"'
@@ -53,7 +54,7 @@ def check_executor_section(
             'Если исполнителей <=2, список можно разместить на титульнике'
         )
 
-    has_responsible = any('отв' in line.lower() and 'исполнител' in line.lower() for line in lines)
+    has_responsible = any_item_contains_all(lines, ["отв", "исполнител"])
     if not has_responsible:
         result.add_error(
             Severity.RECOMMENDATION,

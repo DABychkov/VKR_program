@@ -4,7 +4,8 @@ from datetime import datetime
 
 from ..config.regex_patterns import RE_INITIALS, RE_YEAR_1900_2099
 from ..models.validation_result import Severity, ValidationResult
-from .regex_utils import extract_int_by_pattern
+from .common.regex_utils import extract_int_by_pattern
+from .common.section_utils import find_first_index_contains, text_contains_any
 
 
 def find_organization_block(paragraphs: list[str], start_idx: int = 0, end_idx: int = 15) -> list[str]:
@@ -160,7 +161,7 @@ def check_organization(paragraphs: list[str], result: ValidationResult) -> None:
 
     org_text = ' '.join(org_block).upper()
     keywords = ["МИНИСТЕРСТВО", "ФЕДЕРАЛЬНОЕ", "АГЕНТСТВО", "УНИВЕРСИТЕТ"]
-    if not any(kw in org_text for kw in keywords):
+    if not text_contains_any(org_text, keywords, case_sensitive=True):
         result.add_error(
             Severity.RECOMMENDATION,
             "Наименование организации возможно некорректно (нет ключевых слов: Министерство, Федеральное и т.д.)"
@@ -208,7 +209,7 @@ def check_approval_stamps(paragraphs: list[str], result: ValidationResult) -> No
             "Гриф УТВЕРЖДАЮ должен быть написан заглавными буквами"
         )
 
-    utv_idx = next((i for i, p in enumerate(paragraphs) if "УТВЕРЖДАЮ" in p.upper()), None)
+    utv_idx = find_first_index_contains(paragraphs, "УТВЕРЖДАЮ")
     if utv_idx is not None:
         context = '\n'.join(paragraphs[utv_idx:utv_idx + 5])
         initials = extract_initials(context)

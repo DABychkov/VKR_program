@@ -13,7 +13,7 @@ from ..utils.definitions_utils import (
     intro_phrase_matches,
     is_alphabetical,
 )
-from ..utils.section_utils import (
+from ..utils.common.section_utils import (
     find_section_text_by_keywords,
     get_non_empty_lines,
     has_section_by_keywords,

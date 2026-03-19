@@ -3,7 +3,7 @@
 from re import Pattern
 
 from ..models.validation_result import Severity, ValidationResult
-from .section_utils import check_is_sequential
+from .common.section_utils import check_is_sequential
 
 
 def extract_label(header: str, appendix_header_re: Pattern[str]) -> str | None:
@@ -46,6 +46,17 @@ def check_designation_sequence(
     if len(labels) < 2:
         return
 
+    def _check_letter_sequence(
+        alphabet: str,
+        invalid_labels: set[str],
+        error_message: str,
+    ) -> bool:
+        order = [char for char in alphabet if char not in invalid_labels]
+        indexes = [order.index(label) for label in labels if label in order]
+        if len(indexes) == len(labels) and not check_is_sequential(indexes):
+            result.add_error(Severity.RECOMMENDATION, error_message)
+        return True
+
     if all(label.isdigit() for label in labels):
         numbers = [int(label) for label in labels]
         if not check_is_sequential(numbers):
@@ -57,25 +68,25 @@ def check_designation_sequence(
         return
 
     if all(len(label) == 1 and "А" <= label <= "Я" for label in labels):
-        order = [char for char in "АБВГДЕЖИКЛМНПРСТУФХЦШЩЭЮЯ" if char not in invalid_cyrillic_labels]
-        indexes = [order.index(label) for label in labels if label in order]
-        if len(indexes) == len(labels) and not check_is_sequential(indexes):
-            result.add_error(
-                Severity.RECOMMENDATION,
+        _check_letter_sequence(
+            alphabet="АБВГДЕЖИКЛМНПРСТУФХЦШЩЭЮЯ",
+            invalid_labels=invalid_cyrillic_labels,
+            error_message=(
                 'Кириллические обозначения приложений идут не по порядку. '
-                'Рекомендуется проверить последовательность приложений.',
-            )
+                'Рекомендуется проверить последовательность приложений.'
+            ),
+        )
         return
 
     if all(len(label) == 1 and "A" <= label <= "Z" for label in labels):
-        order = [char for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" if char not in invalid_latin_labels]
-        indexes = [order.index(label) for label in labels if label in order]
-        if len(indexes) == len(labels) and not check_is_sequential(indexes):
-            result.add_error(
-                Severity.RECOMMENDATION,
+        _check_letter_sequence(
+            alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            invalid_labels=invalid_latin_labels,
+            error_message=(
                 'Латинские обозначения приложений идут не по порядку. '
-                'Рекомендуется проверить последовательность приложений.',
-            )
+                'Рекомендуется проверить последовательность приложений.'
+            ),
+        )
 
 
 def check_contents_mentions(

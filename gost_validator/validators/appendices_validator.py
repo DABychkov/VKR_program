@@ -14,7 +14,7 @@ from ..utils.appendices_validation_utils import (
     extract_label,
     is_valid_label,
 )
-from ..utils.section_utils import (
+from ..utils.common.section_utils import (
     find_section_entries_by_keywords,
     find_section_text_by_keywords,
     get_non_empty_lines,

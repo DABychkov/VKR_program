@@ -9,7 +9,7 @@ from ..utils.abstract_utils import (
     check_keywords,
     check_volume_info,
 )
-from ..utils.section_utils import find_section_text_by_keywords, get_non_empty_lines
+from ..utils.common.section_utils import find_section_text_by_keywords, get_non_empty_lines
 from .base_validator import BaseValidator
 
 

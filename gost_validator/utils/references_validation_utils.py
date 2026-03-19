@@ -3,7 +3,7 @@
 from re import Pattern
 
 from ..models.validation_result import Severity, ValidationResult
-from .regex_utils import extract_numbered_item_number
+from .common.regex_utils import extract_numbered_item_number, filter_pattern_matches
 
 
 def check_numbering_sequence(list_items: list[str], result: ValidationResult) -> None:
@@ -27,7 +27,7 @@ def check_initials_presence(
     list_items: list[str], result: ValidationResult, initials_pattern: Pattern[str]
 ) -> None:
     """Рекомендация: хотя бы часть записей должна содержать инициалы авторов."""
-    items_with_initials = [item for item in list_items if initials_pattern.search(item)]
+    items_with_initials = filter_pattern_matches(list_items, initials_pattern)
     if list_items and not items_with_initials:
         result.add_error(
             Severity.RECOMMENDATION,

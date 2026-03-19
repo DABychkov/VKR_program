@@ -7,7 +7,7 @@ from ..config.validation_constants import (
     REFERENCES_SECTION_KEYWORDS,
 )
 from ..utils.references_validation_utils import check_initials_presence, check_numbering_sequence
-from ..utils.section_utils import find_section_text_by_keywords, get_non_empty_lines
+from ..utils.common.section_utils import find_section_text_by_keywords, get_non_empty_lines
 from .base_validator import BaseValidator
 
 

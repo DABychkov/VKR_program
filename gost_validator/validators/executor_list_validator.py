@@ -5,7 +5,7 @@ from ..models.validation_result import ValidationResult, Severity
 from ..config.regex_patterns import RE_EXECUTOR_ON_TITLE, RE_INITIALS
 from ..config.validation_constants import EXECUTOR_SECTION_KEYWORDS
 from ..utils.executor_validation_utils import check_executor_section, check_title_page_executor
-from ..utils.section_utils import find_section_text_by_keywords, get_non_empty_lines
+from ..utils.common.section_utils import find_section_text_by_keywords, get_non_empty_lines
 from .base_validator import BaseValidator
 
 

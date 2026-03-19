@@ -8,7 +8,7 @@ from ..config.regex_patterns import (
     RE_WORD_RECOMMEND,
 )
 from ..models.validation_result import Severity, ValidationResult
-from .regex_utils import extract_int_by_pattern
+from .common.regex_utils import extract_int_by_pattern
 
 
 def extract_volume_metrics(text: str) -> dict[str, int | None]:

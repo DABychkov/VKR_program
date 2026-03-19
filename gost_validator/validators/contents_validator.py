@@ -10,7 +10,7 @@ from ..utils.contents_validation_utils import (
     check_required_items,
     extract_toc_items,
 )
-from ..utils.section_utils import find_section_text_by_keywords, get_non_empty_lines
+from ..utils.common.section_utils import find_section_text_by_keywords, get_non_empty_lines
 from .base_validator import BaseValidator
 
 
