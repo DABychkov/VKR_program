@@ -18,6 +18,21 @@ def extract_int_by_pattern(text: str, pattern: Pattern[str], group: int | str = 
         return None
 
 
+def find_last_int_by_pattern(
+    lines: list[str],
+    pattern: Pattern[str],
+    group: int | str = 1,
+) -> int | None:
+    """Ищет последнее (снизу вверх) вхождение pattern в списке строк и возвращает int из группы."""
+    for line in reversed(lines):
+        if not line.strip():
+            continue
+        value = extract_int_by_pattern(line, pattern, group=group)
+        if value is not None:
+            return value
+    return None
+
+
 def split_words_by_non_word(text: str) -> list[str]:
     """Делит строку по не-словесным символам и убирает пустые токены."""
     return [token for token in re.split(r"\W+", text) if token]

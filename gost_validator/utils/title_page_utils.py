@@ -4,8 +4,8 @@ from datetime import datetime
 
 from ..config.regex_patterns import RE_INITIALS, RE_YEAR_1900_2099
 from ..models.validation_result import Severity, ValidationResult
-from .common.regex_utils import extract_int_by_pattern
-from .common.section_utils import find_first_index_contains, text_contains_any
+from .common.regex_utils import extract_int_by_pattern, find_last_int_by_pattern
+from .common.section_utils import find_first_index_contains, text_contains_all, text_contains_any
 from .common.text_utils import is_uppercase_text
 
 
@@ -45,11 +45,12 @@ def find_metadata_block(paragraphs: list[str]) -> dict[str, str]:
     """
     metadata = {}
     for para in paragraphs[:30]:  # Первые 30 строк титульника
-        if "УДК" in para.upper():
+        para_upper = para.upper()
+        if "УДК" in para_upper:
             metadata["УДК"] = para.strip()
-        elif "РЕГ" in para.upper() and "НИОКТР" in para.upper():
+        elif text_contains_all(para_upper, ["РЕГ", "НИОКТР"], case_sensitive=True):
             metadata["Рег. N НИОКТР"] = para.strip()
-        elif "РЕГ" in para.upper() and "ИКРБС" in para.upper():
+        elif text_contains_all(para_upper, ["РЕГ", "ИКРБС"], case_sensitive=True):
             metadata["Рег. N ИКРБС"] = para.strip()
     return metadata
 
@@ -64,9 +65,10 @@ def find_approval_stamp(paragraphs: list[str]) -> tuple[str | None, str | None]:
     utv = None
     
     for para in paragraphs[:30]:
-        if "СОГЛАСОВАНО" in para.upper():
+        para_upper = para.upper()
+        if "СОГЛАСОВАНО" in para_upper:
             sogl = para.strip()
-        if "УТВЕРЖДАЮ" in para.upper():
+        if "УТВЕРЖДАЮ" in para_upper:
             utv = para.strip()
     
     return sogl, utv
@@ -79,9 +81,11 @@ def find_document_type(paragraphs: list[str]) -> str | None:
     Должно быть капсом, две строки: "ОТЧЕТ" и "О НАУЧНО-ИССЛЕДОВАТЕЛЬСКОЙ РАБОТЕ".
     """
     for i, para in enumerate(paragraphs[:30]):
-        if "ОТЧЕТ" in para.upper() and i + 1 < len(paragraphs):
+        para_upper = para.upper()
+        if "ОТЧЕТ" in para_upper and i + 1 < len(paragraphs):
             next_para = paragraphs[i + 1]
-            if "НАУЧНО-ИССЛЕДОВАТЕЛЬСКОЙ" in next_para.upper():
+            next_para_upper = next_para.upper()
+            if "НАУЧНО-ИССЛЕДОВАТЕЛЬСКОЙ" in next_para_upper:
                 return f"{para.strip()}\n{next_para.strip()}"
     return None
 
@@ -103,15 +107,18 @@ def find_place_and_year(paragraphs: list[str]) -> tuple[str | None, int | None]:
     Ищет снизу вверх по всем строкам титульника.
     Возвращает: (место, год)
     """
-    # Ищем год во всех абзацах снизу вверх
+    # Ищем последний год (снизу вверх) через общий helper.
+    year = find_last_int_by_pattern(paragraphs, RE_YEAR_1900_2099, group=1)
+    if year is None:
+        return None, None
+
+    # Место берем из той же строки, где впервые снизу встретился этот год.
     for para in reversed(paragraphs):
         if not para.strip():
             continue
-        
-        # Ищем год (4 цифры, начинается с 19 или 20)
-        year = extract_int_by_pattern(para, RE_YEAR_1900_2099, group=1)
-        if year is not None:
-            # Место = все что до года
+
+        found_year = extract_int_by_pattern(para, RE_YEAR_1900_2099, group=1)
+        if found_year == year:
             place = RE_YEAR_1900_2099.sub('', para).strip(' ,')
             return place if place else None, year
     

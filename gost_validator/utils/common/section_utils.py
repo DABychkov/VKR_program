@@ -126,6 +126,19 @@ def text_contains_any(
     return any(needle.lower() in text_lower for needle in needles)
 
 
+def text_contains_all(
+    text: str,
+    needles: tuple[str, ...] | list[str],
+    case_sensitive: bool = False,
+) -> bool:
+    """Проверяет, что text содержит все строки из needles."""
+    if case_sensitive:
+        return all(needle in text for needle in needles)
+
+    text_lower = text.lower()
+    return all(needle.lower() in text_lower for needle in needles)
+
+
 def any_item_contains(
     items: list[str],
     needle: str,

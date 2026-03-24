@@ -63,3 +63,29 @@ RE_MAIN_SECTION_START_PATTERNS = (
     re.compile(r"^Глава\s+\d+", re.IGNORECASE),
     re.compile(r"^ГЛАВА\s+\d+", re.IGNORECASE),
 )
+
+# Rich extractors: таблицы / подписи / ссылки
+# Пример: "Таблица 2 - Параметры", "Таблица А.1 - ..."
+RE_TABLE_TITLE = re.compile(
+    r"^\s*(таблица|table)\s+([A-Za-zА-Яа-я]?\d+(?:\.\d+)*)\s*[\-\u2013\u2014:]\s+.+$",
+    re.IGNORECASE,
+)
+# Пример: "Продолжение таблицы 2", "Продолжения таблицы А.1"
+RE_TABLE_CONTINUATION = re.compile(r"продолжени[ея]\s+таблиц(?:ы)?\s+[A-Za-zА-Яа-я]?\d+(?:\.\d+)*", re.IGNORECASE)
+
+# Пример подписи: "Рисунок 2 - Схема...", "Рис. А.3: ..."
+RE_FIGURE_CAPTION = re.compile(
+    r"^\s*(рис(?:\.|унок)?|figure)\s+((?:[A-Za-zА-Яа-я]\.\d+)|(?:\d+\.\d+)|(?:\d+))\s*([\-\u2013\u2014:]?)",
+    re.IGNORECASE,
+)
+# Пример ссылок на источники: "[1]" и диапазон "[1] - [4]" / "[1]-[4]"
+RE_SOURCE_LINK = re.compile(r"\[(?P<start>\d+)\](?:\s*[-\u2013]\s*\[(?P<end>\d+)\])?")
+# Пример: "в рисунке 2", "согласно рисунку 2.1", "см. рис. А.3"
+RE_FIGURE_LINK = re.compile(
+    r"(?:рис\.|рисунк[а-я]*|figure)\s*\(?((?:[A-Za-zА-Яа-я]\.\d+)|(?:\d+\.\d+)|(?:\d+))\)?",
+    re.IGNORECASE,
+)
+# Пример: "таблица 2", "табл. А.1"
+RE_TABLE_LINK = re.compile(r"(?:табл(?:\.|ица)?|table)\s*([A-Za-zА-Яа-я]?\d+(?:\.\d+)*)", re.IGNORECASE)
+# Пример: "формула (3)", "equation 2.1"
+RE_FORMULA_LINK = re.compile(r"(?:формул(?:а|е|ы)|equation|eq\.)\s*\(?([\d]+(?:\.\d+)*)\)?", re.IGNORECASE)
