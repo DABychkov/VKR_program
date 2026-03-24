@@ -6,7 +6,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.shared import Length
 
-from ...models.rich_document_structure import AlignmentValue
+from ...models.rich_document_structure import AlignmentValue, RunFeature
 
 
 def alignment_to_value(alignment: WD_ALIGN_PARAGRAPH | int | None) -> AlignmentValue:
@@ -44,6 +44,30 @@ def safe_style_name(run_or_paragraph: object) -> str | None:
     if style is None:
         return None
     return getattr(style, "name", None)
+
+
+def run_color_rgb(run: object) -> str | None:
+    """Возвращает RGB-цвет run, если он задан явно."""
+    font = getattr(run, "font", None)
+    if font is None or font.color is None or font.color.rgb is None:
+        return None
+    return str(font.color.rgb)
+
+
+def extract_run_feature(run: object) -> RunFeature:
+    """Нормализует python-docx run в RunFeature."""
+    font_size_pt = float(run.font.size.pt) if run.font.size is not None else None
+    return RunFeature(
+        text=run.text,
+        font_name=run.font.name,
+        font_size_pt=font_size_pt,
+        bold=run.bold,
+        italic=run.italic,
+        underline=bool(run.underline) if run.underline is not None else None,
+        all_caps=run.font.all_caps,
+        color_rgb=run_color_rgb(run),
+        style_name=safe_style_name(run),
+    )
 
 
 def _alignment_from_xml(paragraph: object) -> AlignmentValue | None:

@@ -85,7 +85,10 @@ RE_FIGURE_LINK = re.compile(
     r"(?:рис\.|рисунк[а-я]*|figure)\s*\(?((?:[A-Za-zА-Яа-я]\.\d+)|(?:\d+\.\d+)|(?:\d+))\)?",
     re.IGNORECASE,
 )
-# Пример: "таблица 2", "табл. А.1"
-RE_TABLE_LINK = re.compile(r"(?:табл(?:\.|ица)?|table)\s*([A-Za-zА-Яа-я]?\d+(?:\.\d+)*)", re.IGNORECASE)
+# Пример: "таблица 2", "таблицей 2.1", "табл. А.1"
+RE_TABLE_LINK = re.compile(
+    r"(?:табл\.?|таблиц[а-я]*|table)\s*\(?([A-Za-zА-Яа-я]?\d+(?:\.\d+)*)\)?",
+    re.IGNORECASE,
+)
 # Пример: "формула (3)", "equation 2.1"
 RE_FORMULA_LINK = re.compile(r"(?:формул(?:а|е|ы)|equation|eq\.)\s*\(?([\d]+(?:\.\d+)*)\)?", re.IGNORECASE)

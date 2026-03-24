@@ -66,6 +66,8 @@ class TableCellFeature:
     row: int  # индекс строки
     col: int  # индекс столбца
     text: str  # текст в ячейке
+    is_header_row: bool = False  # принадлежит ли первой строке таблицы
+    runs_features: list[RunFeature] = field(default_factory=list)  # форматные признаки run-ов в ячейке
 
 
 @dataclass
@@ -83,9 +85,15 @@ class TableFeature:
 
     has_inside_horizontal_borders: bool | None = None  # горизонтальные линии внутри
     has_inside_vertical_borders: bool | None = None  # вертикальные линии внутри
+    has_outer_top_border: bool | None = None  # верхняя внешняя граница
+    has_outer_bottom_border: bool | None = None  # нижняя внешняя граница
+    has_outer_left_border: bool | None = None  # левая внешняя граница
+    has_outer_right_border: bool | None = None  # правая внешняя граница
     has_diagonal_borders: bool | None = None  # диагональные линии
 
     continuation_marker: str | None = None  # признак "продолжение таблицы"
+    header_row_cells: list[TableCellFeature] = field(default_factory=list)  # ячейки первой строки
+    first_column_cells: list[TableCellFeature] = field(default_factory=list)  # ячейки первого столбца
     cell_text_map: list[TableCellFeature] = field(default_factory=list)  # текст в каждой ячейке
 
 

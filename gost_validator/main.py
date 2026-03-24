@@ -78,15 +78,33 @@ def debug_rich_document(file_path: str) -> None:
     print("\nПервые 5 таблиц:")
     for table in rich_doc.table_features[:5]:
         title = (table.title_above_text or "")[:60]
+        header_runs_count = sum(len(cell.runs_features) for cell in table.header_row_cells)
+        first_col_runs_count = sum(len(cell.runs_features) for cell in table.first_column_cells)
+        header_text_preview = " | ".join(
+            cell.text for cell in table.header_row_cells if cell.text
+        )[:80]
+        first_col_preview = " | ".join(
+            cell.text for cell in table.first_column_cells if cell.text
+        )[:80]
         print(
             "  "
             f"table={table.table_index} "
             f"size={table.rows_count}x{table.cols_count} "
             f"title_pattern={table.title_pattern_type} "
             f"inside(H/V)={table.has_inside_horizontal_borders}/{table.has_inside_vertical_borders} "
+            f"outer(T/B/L/R)={table.has_outer_top_border}/{table.has_outer_bottom_border}/"
+            f"{table.has_outer_left_border}/{table.has_outer_right_border} "
             f"diag={table.has_diagonal_borders} "
+            f"header_cells={len(table.header_row_cells)} "
+            f"header_runs={header_runs_count} "
+            f"first_col_cells={len(table.first_column_cells)} "
+            f"first_col_runs={first_col_runs_count} "
             f"title='{title}'"
         )
+        if header_text_preview:
+            print(f"    header_preview='{header_text_preview}'")
+        if first_col_preview:
+            print(f"    first_col_preview='{first_col_preview}'")
 
     print("\nПервые 5 подписей рисунков:")
     for caption in rich_doc.figure_caption_features[:5]:

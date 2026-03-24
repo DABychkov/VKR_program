@@ -9,7 +9,7 @@ from docx import Document
 from docx.shared import Length
 
 from ...models.rich_document_structure import ParagraphFeature, RunFeature
-from .common import resolve_paragraph_alignment, safe_style_name, to_mm, to_pt
+from .common import extract_run_feature, resolve_paragraph_alignment, safe_style_name, to_mm, to_pt
 
 
 def _to_line_spacing(value: float | Length | None) -> float | None:
@@ -18,13 +18,6 @@ def _to_line_spacing(value: float | Length | None) -> float | None:
     if isinstance(value, (int, float)):
         return float(value)
     return float(value.pt)
-
-
-def _run_color_rgb(run: object) -> str | None:
-    font = getattr(run, "font", None)
-    if font is None or font.color is None or font.color.rgb is None:
-        return None
-    return str(font.color.rgb)
 
 
 def _calc_ratio(runs: list[RunFeature], flag_name: str) -> float | None:
@@ -75,23 +68,7 @@ def extract_paragraph_features(doc: Document) -> list[ParagraphFeature]:
         paragraph_runs_features: list[RunFeature] = []
 
         for run in paragraph.runs:
-            font_size_pt = None
-            if run.font.size is not None:
-                font_size_pt = float(run.font.size.pt)
-
-            paragraph_runs_features.append(
-                RunFeature(
-                    text=run.text,
-                    font_name=run.font.name,
-                    font_size_pt=font_size_pt,
-                    bold=run.bold,
-                    italic=run.italic,
-                    underline=bool(run.underline) if run.underline is not None else None,
-                    all_caps=run.font.all_caps,
-                    color_rgb=_run_color_rgb(run),
-                    style_name=safe_style_name(run),
-                )
-            )
+            paragraph_runs_features.append(extract_run_feature(run))
 
         paragraph_format = paragraph.paragraph_format
         paragraph_features.append(

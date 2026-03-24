@@ -9,12 +9,20 @@ from docx import Document
 from docx.oxml.ns import qn
 
 from ...config.regex_patterns import RE_TABLE_CONTINUATION, RE_TABLE_TITLE
-from ...models.rich_document_structure import TableCellFeature, TableFeature
-from .common import resolve_paragraph_alignment
+from ...models.rich_document_structure import RunFeature, TableCellFeature, TableFeature
+from .common import extract_run_feature, resolve_paragraph_alignment
 
 
 def _clean_text(text: str) -> str:
     return " ".join((text or "").split())
+
+
+def _collect_cell_runs(cell: object) -> list[RunFeature]:
+    runs: list[RunFeature] = []
+    for paragraph in cell.paragraphs:
+        for run in paragraph.runs:
+            runs.append(extract_run_feature(run))
+    return runs
 
 
 def _title_pattern_type(title_text: str | None) -> str | None:
@@ -48,6 +56,8 @@ def _collect_table_cell_map(table: object) -> list[TableCellFeature]:
                     row=row_index,
                     col=col_index,
                     text=_clean_text(cell.text),
+                    is_header_row=row_index == 0,
+                    runs_features=_collect_cell_runs(cell),
                 )
             )
     return cells
@@ -75,6 +85,32 @@ def _table_inside_borders(table: object) -> tuple[bool | None, bool | None]:
         return True
 
     return _exists_border(inside_h), _exists_border(inside_v)
+
+
+def _table_outer_borders(table: object) -> tuple[bool | None, bool | None, bool | None, bool | None]:
+    tbl = table._tbl
+    tbl_pr = tbl.find(qn("w:tblPr"))
+    if tbl_pr is None:
+        return None, None, None, None
+
+    tbl_borders = tbl_pr.find(qn("w:tblBorders"))
+    if tbl_borders is None:
+        return None, None, None, None
+
+    top = tbl_borders.find(qn("w:top"))
+    bottom = tbl_borders.find(qn("w:bottom"))
+    left = tbl_borders.find(qn("w:left"))
+    right = tbl_borders.find(qn("w:right"))
+
+    def _exists_border(border_element: object | None) -> bool | None:
+        if border_element is None:
+            return None
+        val = (border_element.get(qn("w:val")) or "").lower()
+        if val in {"", "nil", "none"}:
+            return False
+        return True
+
+    return _exists_border(top), _exists_border(bottom), _exists_border(left), _exists_border(right)
 
 
 def _table_has_diagonal_borders(table: object) -> bool | None:
@@ -153,6 +189,8 @@ def extract_table_features(doc: Document) -> list[TableFeature]:
                 title_alignment = resolve_paragraph_alignment(prev_paragraph)
 
         inside_h, inside_v = _table_inside_borders(table)
+        outer_top, outer_bottom, outer_left, outer_right = _table_outer_borders(table)
+        cell_map = _collect_table_cell_map(table)
         table_features.append(
             TableFeature(
                 table_index=table_index,
@@ -163,9 +201,15 @@ def extract_table_features(doc: Document) -> list[TableFeature]:
                 title_pattern_type=_title_pattern_type(title_text),
                 has_inside_horizontal_borders=inside_h,
                 has_inside_vertical_borders=inside_v,
+                has_outer_top_border=outer_top,
+                has_outer_bottom_border=outer_bottom,
+                has_outer_left_border=outer_left,
+                has_outer_right_border=outer_right,
                 has_diagonal_borders=_table_has_diagonal_borders(table),
                 continuation_marker=_continuation_marker(title_text),
-                cell_text_map=_collect_table_cell_map(table),
+                header_row_cells=[cell for cell in cell_map if cell.is_header_row],
+                first_column_cells=[cell for cell in cell_map if cell.col == 0],
+                cell_text_map=cell_map,
             )
         )
 

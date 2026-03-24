@@ -10,21 +10,13 @@ from ...models.rich_document_structure import AlignmentValue, FooterFeature, Sec
 from .common import resolve_paragraph_alignment
 
 
-def _xml_paragraph_text(paragraph_element: object) -> str:
-    chunks: list[str] = []
-    for text_node in paragraph_element.findall(".//w:t", paragraph_element.nsmap):
-        if text_node.text:
-            chunks.append(text_node.text)
-    return "".join(chunks)
-
-
-def _xml_paragraph_has_page_field(paragraph_element: object) -> bool:
-    for field_simple in paragraph_element.findall(".//w:fldSimple", paragraph_element.nsmap):
+def _element_has_page_field(element: object) -> bool:
+    for field_simple in element.findall(".//w:fldSimple", element.nsmap):
         instr = field_simple.get(qn("w:instr"), "")
         if "PAGE" in instr.upper():
             return True
 
-    for instr_text in paragraph_element.findall(".//w:instrText", paragraph_element.nsmap):
+    for instr_text in element.findall(".//w:instrText", element.nsmap):
         text = (instr_text.text or "").upper()
         if "PAGE" in text:
             return True
@@ -32,8 +24,8 @@ def _xml_paragraph_has_page_field(paragraph_element: object) -> bool:
     return False
 
 
-def _xml_paragraph_has_center_tab(paragraph_element: object) -> bool:
-    p_pr = paragraph_element.find(qn("w:pPr"))
+def _element_has_center_tab(element: object) -> bool:
+    p_pr = element.find(qn("w:pPr"))
     if p_pr is None:
         return False
 
@@ -46,6 +38,14 @@ def _xml_paragraph_has_center_tab(paragraph_element: object) -> bool:
             return True
 
     return False
+
+
+def _xml_paragraph_text(paragraph_element: object) -> str:
+    chunks: list[str] = []
+    for text_node in paragraph_element.findall(".//w:t", paragraph_element.nsmap):
+        if text_node.text:
+            chunks.append(text_node.text)
+    return "".join(chunks)
 
 
 def _xml_paragraph_alignment(paragraph_element: object) -> AlignmentValue:
@@ -65,42 +65,18 @@ def _xml_paragraph_alignment(paragraph_element: object) -> AlignmentValue:
             if xml_value == "distribute":
                 return "distribute"
 
-    if _xml_paragraph_has_center_tab(paragraph_element):
+    if _element_has_center_tab(paragraph_element):
         return "center"
 
     return "unknown"
 
 
 def _paragraph_has_page_field(paragraph: object) -> bool:
-    element = paragraph._element
-
-    for field_simple in element.findall(".//w:fldSimple", element.nsmap):
-        instr = field_simple.get(qn("w:instr"), "")
-        if "PAGE" in instr.upper():
-            return True
-
-    for instr_text in element.findall(".//w:instrText", element.nsmap):
-        text = (instr_text.text or "").upper()
-        if "PAGE" in text:
-            return True
-
-    return False
+    return _element_has_page_field(paragraph._element)
 
 
 def _paragraph_has_center_tab(paragraph: object) -> bool:
-    p_pr = paragraph._element.find(qn("w:pPr"))
-    if p_pr is None:
-        return False
-
-    tabs = p_pr.find(qn("w:tabs"))
-    if tabs is None:
-        return False
-
-    for tab in tabs.findall(qn("w:tab")):
-        if (tab.get(qn("w:val")) or "").lower() == "center":
-            return True
-
-    return False
+    return _element_has_center_tab(paragraph._element)
 
 
 def _resolve_footer_paragraph_alignment(paragraph: object) -> AlignmentValue:
@@ -122,7 +98,7 @@ def _footer_alignment(section: object) -> AlignmentValue:
     # Сначала обходим все XML-абзацы футера, включая w:sdt/w:sdtContent,
     # которые python-docx не всегда поднимает в footer.paragraphs.
     for paragraph_element in footer_element.findall(".//w:p", footer_element.nsmap):
-        if not _xml_paragraph_has_page_field(paragraph_element):
+        if not _element_has_page_field(paragraph_element):
             continue
 
         xml_alignment = _xml_paragraph_alignment(paragraph_element)
@@ -156,19 +132,7 @@ def _footer_alignment(section: object) -> AlignmentValue:
 
 
 def _has_page_field(section: object) -> bool:
-    footer_element = section.footer._element
-
-    for field_simple in footer_element.findall(".//w:fldSimple", footer_element.nsmap):
-        instr = field_simple.get(qn("w:instr"), "")
-        if "PAGE" in instr.upper():
-            return True
-
-    for instr_text in footer_element.findall(".//w:instrText", footer_element.nsmap):
-        text = (instr_text.text or "").upper()
-        if "PAGE" in text:
-            return True
-
-    return False
+    return _element_has_page_field(section.footer._element)
 
 
 def _extract_pg_num_type(section: object) -> tuple[bool | None, int | None, str | None]:
