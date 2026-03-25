@@ -10,11 +10,14 @@ from docx import Document
 
 from ..models.rich_document_structure import RichDocumentStructure
 from .extractors import (
+    extract_footnote_features,
     extract_figure_caption_features,
     extract_footer_features,
     extract_formula_features,
     extract_links_features,
+    extract_notes_features,
     extract_paragraph_features,
+    resolve_non_source_links,
     extract_section_page_settings,
     extract_table_features,
 )
@@ -38,6 +41,14 @@ class RichParser:
         formula_features = extract_formula_features(doc)
         figure_caption_features = extract_figure_caption_features(doc)
         links_features = extract_links_features(doc)
+        links_features = resolve_non_source_links(
+            links_features,
+            figure_caption_features,
+            table_features,
+            formula_features,
+        )
+        notes_features = extract_notes_features(doc)
+        footnote_features = extract_footnote_features(doc)
 
         # TODO: language_hint, sections_detected.
         return RichDocumentStructure(
@@ -49,4 +60,6 @@ class RichParser:
             formula_features=formula_features,
             figure_caption_features=figure_caption_features,
             links_features=links_features,
+            notes_features=notes_features,
+            footnote_features=footnote_features,
         )

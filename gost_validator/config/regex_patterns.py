@@ -92,3 +92,17 @@ RE_TABLE_LINK = re.compile(
 )
 # Пример: "формула (3)", "equation 2.1"
 RE_FORMULA_LINK = re.compile(r"(?:формул(?:а|е|ы)|equation|eq\.)\s*\(?([\d]+(?:\.\d+)*)\)?", re.IGNORECASE)
+
+# Примечания и сноски
+# Пример: "Примечание - Текст"
+RE_NOTE_SINGLE = re.compile(r"^\s*примечание\s*[-\u2013\u2014]\s*(.+)$", re.IGNORECASE)
+# Пример: "Примечания" / "Примечания:"
+RE_NOTES_HEADER = re.compile(r"^\s*примечания\s*:?\s*$", re.IGNORECASE)
+# Пример: "1 К тексту дается...", "1. К тексту..."
+RE_NOTES_ITEM = re.compile(r"^\s*(\d{1,3})[\.)]?\s+.+$")
+# Пример: "1 Примечание - Текст", "1. Примечание - Текст"
+RE_NUMBERED_NOTE_SINGLE = re.compile(r"^\s*(\d{1,3})[\.)]?\s+примечани[ея]\s*[-\u2013\u2014]\s*.+$", re.IGNORECASE)
+# Пример звездочной сноски в тексте: "слово*"
+RE_ASTERISK_FOOTNOTE_INLINE_MARKER = re.compile(r"(?<=\S)\*(?!\*)")
+# Пример строки пояснения сноски: "* Текст пояснения"
+RE_ASTERISK_FOOTNOTE_BODY = re.compile(r"^\s*\*\s+.+$")

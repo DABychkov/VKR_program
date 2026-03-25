@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from docx import Document
+from docx.text.paragraph import Paragraph
 
 from ...config.regex_patterns import (
     RE_APPENDIX_HEADER,
@@ -16,7 +17,7 @@ from ...config.regex_patterns import (
     RE_TABLE_LINK,
     RE_TABLE_TITLE,
 )
-from ...models.rich_document_structure import FigureCaptionFeature, LinkFeature
+from ...models.rich_document_structure import FigureCaptionFeature, FormulaFeature, LinkFeature, TableFeature
 from .common import resolve_paragraph_alignment
 
 
@@ -92,12 +93,80 @@ def _figure_caption_pattern(number_token: str) -> str:
     return "figure_caption_global"
 
 
+def _normalize_target_number(token: str | None) -> str | None:
+    if token is None:
+        return None
+    cleaned = re.sub(r"[\s\(\)]", "", token)
+    return cleaned or None
+
+
+def _extract_figure_number(text: str) -> str | None:
+    match = RE_FIGURE_CAPTION.search(text)
+    if not match:
+        return None
+    return _normalize_target_number(match.group(2))
+
+
+def _extract_table_number(text: str | None) -> str | None:
+    if not text:
+        return None
+    match = RE_TABLE_TITLE.match(text)
+    if not match:
+        return None
+    return _normalize_target_number(match.group(2))
+
+
+def _extract_formula_number(number_pattern: str | None) -> str | None:
+    return _normalize_target_number(number_pattern)
+
+
+def _paragraph_has_drawing(paragraph: Paragraph) -> bool:
+    paragraph_element = paragraph._p
+    drawing_count = len(paragraph_element.findall(".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}drawing"))
+    pict_count = len(paragraph_element.findall(".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}pict"))
+    return (drawing_count + pict_count) > 0
+
+
+def _has_nearby_drawing(paragraphs: list[Paragraph], paragraph_index: int) -> bool:
+    # В реальных DOCX подпись может идти сразу под рисунком, поэтому проверяем окно вокруг подписи.
+    for offset in (-2, -1, 0, 1):
+        probe_index = paragraph_index + offset
+        if 0 <= probe_index < len(paragraphs) and _paragraph_has_drawing(paragraphs[probe_index]):
+            return True
+    return False
+
+
+def _nearest_drawing_offset(paragraphs: list[Paragraph], paragraph_index: int) -> int | None:
+    nearest_offset: int | None = None
+    for offset in (-2, -1, 0, 1):
+        probe_index = paragraph_index + offset
+        if not (0 <= probe_index < len(paragraphs)):
+            continue
+        if not _paragraph_has_drawing(paragraphs[probe_index]):
+            continue
+        if nearest_offset is None or abs(offset) < abs(nearest_offset):
+            nearest_offset = offset
+    return nearest_offset
+
+
+def _drawing_relative_position(paragraphs: list[Paragraph], paragraph_index: int) -> str:
+    nearest_offset = _nearest_drawing_offset(paragraphs, paragraph_index)
+    if nearest_offset is None:
+        return "unknown"
+    if nearest_offset < 0:
+        return "below"
+    if nearest_offset > 0:
+        return "above"
+    return "same_paragraph"
+
+
 def extract_figure_caption_features(doc: Document) -> list[FigureCaptionFeature]:
     """Извлекает подписи рисунков по regex-эвристике."""
     result: list[FigureCaptionFeature] = []
     is_in_appendix_context = False
 
-    for paragraph_index, paragraph in enumerate(doc.paragraphs):
+    paragraphs = list(doc.paragraphs)
+    for paragraph_index, paragraph in enumerate(paragraphs):
         text = " ".join(paragraph.text.split())
         if not text:
             continue
@@ -116,10 +185,13 @@ def extract_figure_caption_features(doc: Document) -> list[FigureCaptionFeature]
             FigureCaptionFeature(
                 paragraph_index=paragraph_index,
                 caption_text=text,
+                caption_number=_extract_figure_number(text),
                 alignment=resolve_paragraph_alignment(paragraph),
                 pattern_type=_figure_caption_pattern(number_token),
                 has_dash_separator=separator in {"-", "–", "—", ":"},
                 ends_with_period=text.endswith("."),
+                has_nearby_drawing=_has_nearby_drawing(paragraphs, paragraph_index),
+                drawing_relative_position=_drawing_relative_position(paragraphs, paragraph_index),
                 in_appendix=is_in_appendix_context,
             )
         )
@@ -132,7 +204,7 @@ def extract_links_features(doc: Document) -> list[LinkFeature]:
     links: list[LinkFeature] = []
     refs_numbers = _extract_references_numbers(doc)
 
-    for paragraph in doc.paragraphs:
+    for paragraph_index, paragraph in enumerate(doc.paragraphs):
         text = " ".join(paragraph.text.split())
         if not text:
             continue
@@ -150,6 +222,7 @@ def extract_links_features(doc: Document) -> list[LinkFeature]:
             links.append(
                 LinkFeature(
                     link_type="source",
+                    paragraph_index=paragraph_index,
                     raw_text=match.group(0),
                     target_number=target,
                     is_range=end_number is not None or _is_range(target),
@@ -162,14 +235,99 @@ def extract_links_features(doc: Document) -> list[LinkFeature]:
 
         for match in RE_FIGURE_LINK.finditer(text):
             target = match.group(1)
-            links.append(LinkFeature(link_type="figure", raw_text=match.group(0), target_number=target))
+            links.append(
+                LinkFeature(
+                    link_type="figure",
+                    paragraph_index=paragraph_index,
+                    raw_text=match.group(0),
+                    target_number=target,
+                )
+            )
 
         for match in RE_TABLE_LINK.finditer(text):
             target = match.group(1)
-            links.append(LinkFeature(link_type="table", raw_text=match.group(0), target_number=target))
+            links.append(
+                LinkFeature(
+                    link_type="table",
+                    paragraph_index=paragraph_index,
+                    raw_text=match.group(0),
+                    target_number=target,
+                )
+            )
 
         for match in RE_FORMULA_LINK.finditer(text):
             target = match.group(1)
-            links.append(LinkFeature(link_type="formula", raw_text=match.group(0), target_number=target))
+            links.append(
+                LinkFeature(
+                    link_type="formula",
+                    paragraph_index=paragraph_index,
+                    raw_text=match.group(0),
+                    target_number=target,
+                )
+            )
+
+    return links
+
+
+def resolve_non_source_links(
+    links: list[LinkFeature],
+    figure_caption_features: list[FigureCaptionFeature],
+    table_features: list[TableFeature],
+    formula_features: list[FormulaFeature],
+) -> list[LinkFeature]:
+    """Проставляет resolved-флаги для figure/table/formula ссылок."""
+
+    def _set_resolution(link: LinkFeature, in_list: bool | None, with_object: bool | None) -> None:
+        link.resolved_in_target_list = in_list
+        link.resolved_with_object = with_object
+
+    figure_by_number: dict[str, list[FigureCaptionFeature]] = {}
+    for caption in figure_caption_features:
+        number = _normalize_target_number(caption.caption_number)
+        if not number:
+            continue
+        figure_by_number.setdefault(number, []).append(caption)
+
+    table_numbers: set[str] = set()
+    for table in table_features:
+        number = _extract_table_number(table.title_above_text)
+        if number:
+            table_numbers.add(number)
+
+    formula_numbers: set[str] = set()
+    for formula in formula_features:
+        number = _extract_formula_number(formula.number_pattern)
+        if number:
+            formula_numbers.add(number)
+
+    for link in links:
+        if link.link_type == "source":
+            continue
+
+        target_number = _normalize_target_number(link.target_number)
+        if not target_number:
+            _set_resolution(link, False, None)
+            continue
+
+        if link.link_type == "figure":
+            matched_captions = figure_by_number.get(target_number, [])
+            _set_resolution(
+                link,
+                bool(matched_captions),
+                any(caption.has_nearby_drawing for caption in matched_captions),
+            )
+            continue
+
+        if link.link_type == "table":
+            exists = target_number in table_numbers
+            # Для таблиц "object" = реально найденная таблица с указанным номером.
+            _set_resolution(link, exists, exists)
+            continue
+
+        if link.link_type == "formula":
+            _set_resolution(link, target_number in formula_numbers, None)
+            continue
+
+        _set_resolution(link, None, None)
 
     return links

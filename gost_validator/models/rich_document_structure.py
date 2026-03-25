@@ -75,11 +75,13 @@ class TableFeature:
     """Признаки таблицы для оформления по ГОСТ."""
 
     table_index: int  # порядковый номер таблицы
+    table_anchor_paragraph_index: int | None = None  # индекс абзаца непосредственно перед таблицей
     section_hint: str | None = None  # какая часть документа
     rows_count: int = 0  # кол-во строк
     cols_count: int = 0  # кол-во столбцов
 
     title_above_text: str | None = None  # заголовок выше таблицы
+    title_paragraph_index: int | None = None  # индекс абзаца заголовка таблицы (если найден)
     title_alignment: AlignmentValue = "unknown"  # выравнивание заголовка
     title_pattern_type: str | None = None  # шаблон: "Table 1", "Таблица 1", etc
 
@@ -103,10 +105,13 @@ class FigureCaptionFeature:
 
     paragraph_index: int  # в каком абзаце подпись
     caption_text: str  # текст подписи
+    caption_number: str | None = None  # номер подписи (1, 2.1, A.3)
     alignment: AlignmentValue = "unknown"  # выравнивание (часто центр)
     pattern_type: str | None = None  # шаблон: "Fig. 1", "Рис. 1", etc
     has_dash_separator: bool | None = None  # есть ли тире/дефис
     ends_with_period: bool | None = None  # заканчивается на точку
+    has_nearby_drawing: bool | None = None  # найден ли рядом XML-объект рисунка
+    drawing_relative_position: Literal["above", "below", "same_paragraph", "unknown"] | None = None
     in_appendix: bool = False  # в приложении ли
 
 
@@ -121,7 +126,7 @@ class FormulaFeature:
     number_alignment_right: bool | None = None  # номер справа
 
     has_blank_line_before: bool | None = None  # пустая строка перед
-    has_blank_line_after: bool | None = None  # пустая строка после
+    has_blank_line_after: bool | None = None  # пустая строка после формулы (валидатор смотрит на has_explanation_where отдельно)
     has_explanation_where: bool | None = None  # есть "где"/"where" объяснение
     explanation_sequence_score: float | None = None  # качество объяснения
 
@@ -134,9 +139,38 @@ class LinkFeature:
 
     link_type: Literal["source", "figure", "table", "formula", "standard"]  # тип ссылки
     raw_text: str  # текст как в документе
+    paragraph_index: int | None = None  # индекс абзаца, в котором встретилась ссылка
     target_number: str | None = None  # номер цели (1, 1.2, диапазон)
     is_range: bool = False  # диапазон ли (1-5, 1.2-1.5)
     resolved_in_target_list: bool | None = None  # найдена ли цель в документе
+    resolved_with_object: bool | None = None  # для figure/table: подтверждена ли цель как реальный объект
+
+
+@dataclass
+class NoteFeature:
+    """Примечания в тексте по шаблонам ГОСТ."""
+
+    paragraph_index: int  # индекс абзаца
+    raw_text: str  # исходный текст абзаца
+    note_kind: Literal["single", "group_header", "group_item", "numbered_single"] = "single"
+    item_number: int | None = None  # номер пункта примечания, если есть
+    has_dash_separator: bool | None = None  # есть ли разделитель "-" после слова "Примечание"
+    near_figure_caption: bool = False  # рядом есть подпись рисунка
+    near_table_caption: bool = False  # рядом есть подпись/заголовок таблицы
+
+
+@dataclass
+class FootnoteFeature:
+    """Признаки сносок в тексте и их связь с footnotes.xml."""
+
+    paragraph_index: int  # индекс абзаца, где найден маркер
+    marker_text: str  # отображаемый маркер (* или id)
+    marker_type: Literal["xml_reference", "asterisk"] = "xml_reference"
+    footnote_id: int | None = None  # id из w:footnoteReference
+    custom_mark_follows: bool | None = None  # кастомный маркер (например *) вместо номера
+    resolved_in_footnotes_part: bool | None = None  # найден ли id в /word/footnotes.xml
+    has_separator_line: bool | None = None  # обнаружена ли разделительная линия сноски
+    separator_short_left_heuristic: bool | None = None  # линия похожа на короткую левую (эвристика)
 
 
 @dataclass
@@ -182,3 +216,5 @@ class RichDocumentStructure:
     figure_caption_features: list[FigureCaptionFeature] = field(default_factory=list)  # подписи под рисунки
     formula_features: list[FormulaFeature] = field(default_factory=list)  # формулы/уравнения
     links_features: list[LinkFeature] = field(default_factory=list)  # ссылки на источники, таблицы, рисунки
+    notes_features: list[NoteFeature] = field(default_factory=list)  # примечания
+    footnote_features: list[FootnoteFeature] = field(default_factory=list)  # сноски

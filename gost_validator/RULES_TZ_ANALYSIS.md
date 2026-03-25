@@ -1,0 +1,165 @@
+# Реестр правил по ТЗ (черновик)
+
+## 1) Что означает section
+section - это просто группировка правила по блоку документа, не «чеклист ради чеклиста».
+
+Рекомендуемые значения проекта:
+- TITLE
+- EXECUTORS
+- ABSTRACT
+- CONTENTS
+- TERMS
+- ABBREVIATIONS
+- REFERENCES
+- APPENDICES
+- GENERAL
+- FIGURE
+- TABLE
+- FORMULA
+- LINKS
+- NOTES_FOOTNOTES
+
+То есть section = «структурный элемент / тема правила».
+
+## 2) Минимальная структура правила (как вы и предложили)
+
+Для сервера достаточно такого объекта:
+- rule_id: str
+- section: str
+- description: str
+- severity: CRITICAL | RECOMMENDATION
+- status: OK | FAIL
+- message: str | null
+- gost_ref: str | null
+
+Комментарий:
+- status=OK/FAIL оставить, этого достаточно на текущем этапе.
+- message можно null при OK.
+- gost_ref пока null, позже заполните.
+
+## 3) каждый if с add_error = это одно правило
+
+Пример из abstract_utils.py:
+if char_count < min_abstract_size: add_error(...)
+
+Это одно конкретное правило, которое можно формализовать как:
+- rule_id: ABSTRACT-004
+- description: "Объем реферата >= 850 символов"
+- severity: RECOMMENDATION
+
+## 4) Что уже покрыто текущими валидаторами
+
+### TITLE
+- TITLE-001: найден блок организации (CRITICAL)
+- TITLE-002: найден УДК (CRITICAL)
+- TITLE-003: в строке УДК есть цифры (CRITICAL)
+- TITLE-004: найден гриф УТВЕРЖДАЮ (CRITICAL)
+- TITLE-005: найден вид документа ОТЧЕТ О НИР (CRITICAL)
+- TITLE-006: найден год (CRITICAL)
+- TITLE-007: год <= текущего (CRITICAL)
+- TITLE-008: найдено место (RECOMMENDATION)
+
+### EXECUTORS
+- EXEC-001: есть секция "СПИСОК ИСПОЛНИТЕЛЕЙ" или исполнитель на титуле (RECOMMENDATION)
+- EXEC-002: в секции есть роль "Исполнители" (CRITICAL)
+- EXEC-003: найдены инициалы в формате А.В. (CRITICAL)
+- EXEC-004: есть "Отв. исполнитель" (RECOMMENDATION)
+
+### ABSTRACT
+- ABSTRACT-001: раздел РЕФЕРАТ найден (CRITICAL)
+- ABSTRACT-002: найдены метрики объема (страницы/книги/рис/табл/источники), минимум 3 (CRITICAL)
+- ABSTRACT-003: метрики разделены запятыми (CRITICAL)
+- ABSTRACT-004: ключевые слова найдены (RECOMMENDATION)
+- ABSTRACT-005: ключевые слова капсом (CRITICAL)
+- ABSTRACT-006: ключевые слова через запятые (CRITICAL)
+- ABSTRACT-007: ключевые слова без точки в конце (CRITICAL)
+- ABSTRACT-008: ключевые слова без переносов (CRITICAL)
+- ABSTRACT-009: в тексте есть цель/объект/рекомендации (RECOMMENDATION)
+- ABSTRACT-010: объем реферата >= порога (RECOMMENDATION)
+
+### CONTENTS
+- CONTENTS-001: раздел СОДЕРЖАНИЕ найден (RECOMMENDATION)
+- CONTENTS-002: раздел не пустой (CRITICAL)
+- CONTENTS-003: строки содержания распознаны с номерами страниц (CRITICAL)
+- CONTENTS-004: есть ВВЕДЕНИЕ/ЗАКЛЮЧЕНИЕ/СПИСОК ИСТОЧНИКОВ (CRITICAL) (нада расширить полный список такой: введение, заключение, список использованных источников и наименования приложений )
+- CONTENTS-005: порядок страниц ВВЕДЕНИЕ < ЗАКЛЮЧЕНИЕ < ИСТОЧНИКИ (RECOMMENDATION)
+- CONTENTS-006: номера страниц > 0 (CRITICAL)
+- CONTENTS-007: есть визуальный разделитель (точки/таб/широкий пробел) (RECOMMENDATION)
+
+### TERMS
+- TERMS-001: раздел найден (RECOMMENDATION при отсутствии)
+- TERMS-002: вводная фраза близка к ГОСТ (CRITICAL)
+- TERMS-003: есть элементы ТЕРМИН — ОПРЕДЕЛЕНИЕ (CRITICAL)
+- TERMS-004: нет левого отступа у левой колонки (RECOMMENDATION)
+- TERMS-005: термин без знаков в конце (RECOMMENDATION)
+- TERMS-006: алфавитный порядок (CRITICAL)
+
+### ABBREVIATIONS
+- ABBR-001: раздел найден или есть объединенный раздел (RECOMMENDATION)
+- ABBR-002: вводная фраза близка к ГОСТ (CRITICAL)
+- ABBR-003: есть элементы СОКРАЩЕНИЕ — РАСШИФРОВКА (CRITICAL)
+- ABBR-004: нет отступа у левой колонки (RECOMMENDATION)
+- ABBR-005: алфавитный порядок (RECOMMENDATION)
+
+### REFERENCES
+- REFS-001: раздел найден (CRITICAL)
+- REFS-002: раздел не пустой (CRITICAL)
+- REFS-003: первый элемент нумерованный (CRITICAL)
+- REFS-004: в разделе есть нумерованные записи (CRITICAL)
+- REFS-005: последовательность нумерации (RECOMMENDATION)
+- REFS-006: в записях есть инициалы (RECOMMENDATION)
+
+### APPENDICES
+- APPX-001: приложения найдены (RECOMMENDATION)
+- APPX-002: в заголовке есть обозначение после ПРИЛОЖЕНИЕ (CRITICAL)
+- APPX-003: обозначение приложения валидно (CRITICAL)
+- APPX-004: приложение не пустое (CRITICAL)
+- APPX-005: после заголовка есть отдельное название (CRITICAL)
+- APPX-006: заголовок приложения без точки в конце (RECOMMENDATION)
+- APPX-007: последовательность обозначений (RECOMMENDATION)
+- APPX-008: приложение перечислено в содержании (RECOMMENDATION)
+
+## 5) Что по ТЗ еще не покрыто, но стоит добавить (реалистично)
+
+### GENERAL (высокий приоритет)
+- GENERAL-001: поля 30/15/20/20 (CRITICAL) - данные уже есть в rich
+- GENERAL-002: абзацный отступ около 1.25 см (CRITICAL) - данные уже есть
+- GENERAL-003: межстрочный 1.5 или 1 (CRITICAL) - данные уже есть 
+- GENERAL-004: размер шрифта >= 12 (CRITICAL, для таблиц мягче) - данные по runs есть
+- GENERAL-005: доля курсива > порога -> рекомендация (RECOMMENDATION)
+- GENERAL-006: цвет шрифта черный (если есть информация) (CRITICAL)
+
+### FIGURE/TABLE/FORMULA/LINKS (высокий приоритет)
+- FIG-001: подпись рисунка снизу (CRITICAL)
+- FIG-002: подпись рисунка по центру, без точки, с номером (CRITICAL)
+- TABLE-001: заголовок таблицы сверху и слева (CRITICAL)
+- TABLE-002: ссылка на таблицу до таблицы (CRITICAL)
+- LINK-001: ссылка на рисунок до подписи рисунка (CRITICAL)
+- FORMULA-001: формула на отдельной строке, blank_before/blank_after (CRITICAL) (blank_after RECOMMENDATION должны быть но где пораждает неопределенности)
+- FORMULA-002: есть где без двоеточия (RECOMMENDATION - само существование где/CRITICAL - без двоеточия)
+
+### NOTES/FOOTNOTES
+- NOTE-001: примечание рядом с материалом (RECOMMENDATION)(я бы начал проверять если оно есть вообще на опреленные правила, типа сразу после материала, с прописной буквы, нумеруется без точки и прочее, иначе все четко)
+- FOOT-001: маркер сноски резолвится (CRITICAL)
+- FOOT-002: есть separator line (RECOMMENDATION)
+
+## 6) Что пока оставляем вне автоматики
+- Визуальные переносы длинных строк (кроме явных переносов)
+- Проверка реальных страниц в Word layout 1:1
+- «Синяя подпись/печать»
+- Размер рисунка >80% страницы (можно отложить)
+
+## 7) Практичный план миграции без ломки
+1. Ввести rule_id в каждую текущую проверку (рядом с add_error).
+2. Добавить в ValidationResult второй список rule_results (параллельно errors).
+3. Постепенно перевести валидаторы на add_rule(...), старый add_error оставить совместимым.
+4. Снаружи (для сервера) отдавать именно rule_results.
+
+## 8) Мини-шаблон новой функции проверки
+
+Идея:
+- check_min_text_length(text, min_value, rule_id, section, severity, result, message=None, gost_ref=None)
+- Если text < min_value: FAIL + message
+- Иначе OK + optional message=None
+
+Так унифицируете все if-блоки вида "if value < threshold".

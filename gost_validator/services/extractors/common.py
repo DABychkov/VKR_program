@@ -9,6 +9,11 @@ from docx.shared import Length
 from ...models.rich_document_structure import AlignmentValue, RunFeature
 
 
+def clean_text(text: str | None) -> str:
+    """Нормализует строку: убирает лишние пробелы и переносы."""
+    return " ".join((text or "").split())
+
+
 def alignment_to_value(alignment: WD_ALIGN_PARAGRAPH | int | None) -> AlignmentValue:
     """Нормализует выравнивание Word в наш enum-строковый формат."""
     if alignment is None:

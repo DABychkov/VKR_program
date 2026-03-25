@@ -10,11 +10,7 @@ from docx.oxml.ns import qn
 
 from ...config.regex_patterns import RE_TABLE_CONTINUATION, RE_TABLE_TITLE
 from ...models.rich_document_structure import RunFeature, TableCellFeature, TableFeature
-from .common import extract_run_feature, resolve_paragraph_alignment
-
-
-def _clean_text(text: str) -> str:
-    return " ".join((text or "").split())
+from .common import clean_text, extract_run_feature, resolve_paragraph_alignment
 
 
 def _collect_cell_runs(cell: object) -> list[RunFeature]:
@@ -55,7 +51,7 @@ def _collect_table_cell_map(table: object) -> list[TableCellFeature]:
                 TableCellFeature(
                     row=row_index,
                     col=col_index,
-                    text=_clean_text(cell.text),
+                    text=clean_text(cell.text),
                     is_header_row=row_index == 0,
                     runs_features=_collect_cell_runs(cell),
                 )
@@ -143,18 +139,17 @@ def _table_has_diagonal_borders(table: object) -> bool | None:
     return has_diagonal
 
 
-def _table_prev_paragraph_map(doc: Document) -> dict[int, object | None]:
-    prev_map: dict[int, object | None] = {}
+def _table_prev_paragraph_map(doc: Document) -> dict[int, int | None]:
+    prev_map: dict[int, int | None] = {}
     paragraph_index = 0
     table_index = 0
-    paragraphs = doc.paragraphs
 
     for child in doc._element.body.iterchildren():
         if child.tag == qn("w:p"):
             paragraph_index += 1
             continue
         if child.tag == qn("w:tbl"):
-            prev_map[table_index] = paragraphs[paragraph_index - 1] if paragraph_index > 0 else None
+            prev_map[table_index] = paragraph_index - 1 if paragraph_index > 0 else None
             table_index += 1
 
     return prev_map
@@ -178,14 +173,17 @@ def extract_table_features(doc: Document) -> list[TableFeature]:
     for table_index, table in enumerate(doc.tables):
         rows_count = len(table.rows)
         cols_count = len(table.columns) if rows_count > 0 else 0
-        prev_paragraph = prev_paragraph_map.get(table_index)
+        prev_paragraph_index = prev_paragraph_map.get(table_index)
+        prev_paragraph = doc.paragraphs[prev_paragraph_index] if prev_paragraph_index is not None else None
 
         title_text = None
+        title_paragraph_index = None
         title_alignment = "unknown"
         if prev_paragraph is not None:
-            candidate = _clean_text(prev_paragraph.text)
+            candidate = clean_text(prev_paragraph.text)
             if _is_valid_table_title_text(candidate):
                 title_text = candidate
+                title_paragraph_index = prev_paragraph_index
                 title_alignment = resolve_paragraph_alignment(prev_paragraph)
 
         inside_h, inside_v = _table_inside_borders(table)
@@ -194,9 +192,11 @@ def extract_table_features(doc: Document) -> list[TableFeature]:
         table_features.append(
             TableFeature(
                 table_index=table_index,
+                table_anchor_paragraph_index=prev_paragraph_index,
                 rows_count=rows_count,
                 cols_count=cols_count,
                 title_above_text=title_text,
+                title_paragraph_index=title_paragraph_index,
                 title_alignment=title_alignment,
                 title_pattern_type=_title_pattern_type(title_text),
                 has_inside_horizontal_borders=inside_h,

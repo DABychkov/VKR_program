@@ -36,7 +36,10 @@ def debug_rich_document(file_path: str) -> None:
     print(f"Футеров: {len(rich_doc.footer_features)}")
     print(f"Таблиц: {len(rich_doc.table_features)}")
     print(f"Подписей рисунков: {len(rich_doc.figure_caption_features)}")
+    print(f"Формул: {len(rich_doc.formula_features)}")
     print(f"Ссылок: {len(rich_doc.links_features)}")
+    print(f"Примечаний: {len(rich_doc.notes_features)}")
+    print(f"Сносок: {len(rich_doc.footnote_features)}")
 
     print("\nПараметры страниц по секциям:")
     for section in rich_doc.pages_settings:
@@ -112,20 +115,68 @@ def debug_rich_document(file_path: str) -> None:
         print(
             "  "
             f"p={caption.paragraph_index} "
+            f"num={caption.caption_number} "
             f"align={caption.alignment} "
             f"dash={caption.has_dash_separator} "
             f"period={caption.ends_with_period} "
+            f"near_drawing={caption.has_nearby_drawing} "
+            f"drawing_pos={caption.drawing_relative_position} "
             f"text='{text}'"
+        )
+
+    print("\nПервые 10 формул:")
+    for formula in rich_doc.formula_features[:10]:
+        print(
+            "  "
+            f"p={formula.paragraph_index} "
+            f"align={formula.alignment} "
+            f"num={formula.number_pattern} "
+            f"num_right={formula.number_alignment_right} "
+            f"blank_before={formula.has_blank_line_before} "
+            f"blank_after={formula.has_blank_line_after} "
+            f"where={formula.has_explanation_where} "
+            f"has_omml={formula.omml_xml is not None} "
+            f"text='{formula.formula_text[:80]}'"
         )
 
     print("\nПервые 10 ссылок:")
     for link in rich_doc.links_features[:10]:
         print(
             "  "
+            f"p={link.paragraph_index} "
             f"type={link.link_type} "
             f"target={link.target_number} "
             f"range={link.is_range} "
+            f"resolved={link.resolved_in_target_list} "
+            f"resolved_with_object={link.resolved_with_object} "
             f"raw='{link.raw_text}'"
+        )
+
+    print("\nПервые 10 примечаний:")
+    for note in rich_doc.notes_features[:10]:
+        print(
+            "  "
+            f"p={note.paragraph_index} "
+            f"kind={note.note_kind} "
+            f"num={note.item_number} "
+            f"dash={note.has_dash_separator} "
+            f"near_figure={note.near_figure_caption} "
+            f"near_table={note.near_table_caption} "
+            f"raw='{note.raw_text[:90]}'"
+        )
+
+    print("\nПервые 10 сносок:")
+    for footnote in rich_doc.footnote_features[:10]:
+        print(
+            "  "
+            f"p={footnote.paragraph_index} "
+            f"type={footnote.marker_type} "
+            f"marker={footnote.marker_text} "
+            f"id={footnote.footnote_id} "
+            f"custom={footnote.custom_mark_follows} "
+            f"resolved={footnote.resolved_in_footnotes_part} "
+            f"sep_line={footnote.has_separator_line} "
+            f"sep_short_left={footnote.separator_short_left_heuristic}"
         )
 
 

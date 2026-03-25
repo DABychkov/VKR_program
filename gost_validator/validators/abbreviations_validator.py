@@ -75,7 +75,7 @@ class AbbreviationsValidator(BaseValidator):
         # По ТЗ: алфавитный порядок.
         if not is_alphabetical(abbreviations):
             result.add_error(
-                Severity.RECOMMENDATION,
+                Severity.CRITICAL,
                 'Сокращения в разделе 1.7 не в алфавитном порядке. '
                 'Рекомендуется упорядочить список по алфавиту.',
             )
