@@ -3,6 +3,8 @@
 from dataclasses import dataclass, field
 from enum import Enum
 
+from .rule_result import RuleResult
+
 
 class Severity(Enum):
     """Уровень серьезности ошибки."""
@@ -16,12 +18,66 @@ class ValidationResult:
     validator_name: str
     is_valid: bool = True
     errors: list[tuple[Severity, str]] = field(default_factory=list)
+    rule_results: list[RuleResult] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if self.rule_results:
+            return
+        from ..config.rules_catalog import build_default_rule_results
+
+        self.rule_results = build_default_rule_results(self.validator_name)
     
     def add_error(self, severity: Severity, message: str):
         """Добавить ошибку."""
         self.errors.append((severity, message))
         if severity == Severity.CRITICAL:
             self.is_valid = False
+
+    def add_rule(
+        self,
+        rule_id: str,
+        status: str,
+        message: str | None = None,
+        gost_ref: str = "0",
+        implemented: bool = True,
+    ) -> None:
+        """Обновляет правило в rule_results (или добавляет, если его нет в каталоге)."""
+        normalized_status = status.upper().strip()
+        if normalized_status not in {"OK", "FAIL"}:
+            raise ValueError("status must be 'OK' or 'FAIL'")
+
+        for rule in self.rule_results:
+            if rule.rule_id != rule_id:
+                continue
+
+            rule.status = normalized_status
+            rule.message = message
+            rule.gost_ref = gost_ref
+            rule.implemented = implemented
+
+            if normalized_status == "FAIL":
+                rule_severity = Severity(rule.severity)
+                self.errors.append((rule_severity, message or f"Нарушено правило {rule_id}"))
+                if rule_severity == Severity.CRITICAL:
+                    self.is_valid = False
+            return
+
+        # fallback: добавляем правило, если его нет в каталоге
+        severity = Severity.RECOMMENDATION
+        new_rule = RuleResult(
+            rule_id=rule_id,
+            section="НЕ_КЛАССИФИЦИРОВАНО",
+            description="Правило не найдено в каталоге",
+            severity=severity,
+            status=normalized_status,
+            message=message,
+            gost_ref=gost_ref,
+            implemented=implemented,
+        )
+        self.rule_results.append(new_rule)
+
+        if normalized_status == "FAIL":
+            self.errors.append((severity, message or f"Нарушено правило {rule_id}"))
     
     def has_errors(self) -> bool:
         """Есть ли ошибки."""
