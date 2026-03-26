@@ -43,19 +43,20 @@ class ValidationResult:
     ) -> None:
         """Обновляет правило в rule_results (или добавляет, если его нет в каталоге)."""
         normalized_status = status.upper().strip()
-        if normalized_status not in {"OK", "FAIL"}:
-            raise ValueError("status must be 'OK' or 'FAIL'")
+        if normalized_status not in {"SKIPPED", "OK", "FAIL"}:
+            raise ValueError("status must be 'SKIPPED', 'OK' or 'FAIL'")
 
         for rule in self.rule_results:
             if rule.rule_id != rule_id:
                 continue
 
+            already_failed = rule.status == "FAIL"
             rule.status = normalized_status
             rule.message = message
             rule.gost_ref = gost_ref
             rule.implemented = implemented
 
-            if normalized_status == "FAIL":
+            if normalized_status == "FAIL" and not already_failed:
                 rule_severity = Severity(rule.severity)
                 self.errors.append((rule_severity, message or f"Нарушено правило {rule_id}"))
                 if rule_severity == Severity.CRITICAL:
@@ -68,7 +69,7 @@ class ValidationResult:
             rule_id=rule_id,
             section="НЕ_КЛАССИФИЦИРОВАНО",
             description="Правило не найдено в каталоге",
-            severity=severity,
+            severity=severity.value,
             status=normalized_status,
             message=message,
             gost_ref=gost_ref,

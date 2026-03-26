@@ -7,7 +7,7 @@ from ..config.regex_patterns import (
     RE_WORD_OBJECT,
     RE_WORD_RECOMMEND,
 )
-from ..models.validation_result import Severity, ValidationResult
+from ..models.validation_result import ValidationResult
 from .common.regex_utils import extract_int_by_pattern
 from .common.text_utils import count_non_whitespace_characters
 
@@ -131,17 +131,23 @@ def check_volume_info(lines: list[str], result: ValidationResult) -> None:
     found_metrics = [k for k, v in metrics.items() if v is not None and k in required_metrics]
 
     if len(found_metrics) < 3:
-        result.add_error(
-            Severity.CRITICAL,
-            f'Неполна информация об объеме отчета. Найдено: {found_metrics}. '
-            'Требуется указать: страницы, книги, иллюстрации, таблицы, источники'
+        result.add_rule(
+            rule_id="ABSTRACT-002",
+            status="FAIL",
+            message=(
+                f'Неполна информация об объеме отчета. Найдено: {found_metrics}. '
+                'Требуется указать: страницы, книги, иллюстрации, таблицы, источники'
+            ),
+            implemented=True,
         )
 
     volume_line = first_part.strip()
     if found_metrics and ',' not in volume_line:
-        result.add_error(
-            Severity.CRITICAL,
-            'Сведения об объеме должны разделяться запятыми и располагаться в одну строку'
+        result.add_rule(
+            rule_id="ABSTRACT-003",
+            status="FAIL",
+            message='Сведения об объеме должны разделяться запятыми и располагаться в одну строку',
+            implemented=True,
         )
 
 
@@ -150,36 +156,50 @@ def check_keywords(lines: list[str], result: ValidationResult) -> None:
     keywords_section = find_keywords_section(lines)
 
     if not keywords_section:
-        result.add_error(
-            Severity.RECOMMENDATION,
-            'Ключевые слова не найдены или неправильно отформатированы'
+        result.add_rule(
+            rule_id="ABSTRACT-004",
+            status="FAIL",
+            message='Ключевые слова не найдены или неправильно отформатированы',
+            implemented=True,
         )
+
+        # Если блок ключевых слов не найден, форматные проверки неприменимы в этом прогоне.
+        for rule_id in ("ABSTRACT-005", "ABSTRACT-006", "ABSTRACT-007", "ABSTRACT-008"):
+            result.add_rule(rule_id=rule_id, status="SKIPPED", implemented=True)
         return
 
     format_check = check_keywords_format(keywords_section)
 
     if not format_check["is_uppercase"]:
-        result.add_error(
-            Severity.CRITICAL,
-            'Ключевые слова должны быть написаны прописными буквами (капсом)'
+        result.add_rule(
+            rule_id="ABSTRACT-005",
+            status="FAIL",
+            message='Ключевые слова должны быть написаны прописными буквами (капсом)',
+            implemented=True,
         )
 
     if not format_check["has_commas"]:
-        result.add_error(
-            Severity.CRITICAL,
-            'Ключевые слова должны разделяться запятыми'
+        result.add_rule(
+            rule_id="ABSTRACT-006",
+            status="FAIL",
+            message='Ключевые слова должны разделяться запятыми',
+            implemented=True,
         )
 
     if not format_check["no_trailing_period"]:
-        result.add_error(
-            Severity.CRITICAL,
-            'Ключевые слова не должны заканчиваться точкой'
+        result.add_rule(
+            rule_id="ABSTRACT-007",
+            status="FAIL",
+            message='Ключевые слова не должны заканчиваться точкой',
+            implemented=True,
         )
 
     if not format_check["no_line_breaks"]:
-        result.add_error(
-            Severity.CRITICAL,
-            'Ключевые слова должны располагаться в одну строку без переносов'
+        result.add_rule(
+            rule_id="ABSTRACT-008",
+            status="FAIL",
+            message='Ключевые слова должны располагаться в одну строку без переносов',
+            implemented=True,
         )
 
 
@@ -195,9 +215,11 @@ def check_abstract_text(abstract_text: str, result: ValidationResult) -> None:
             "recommendations": "рекомендации"
         }
         missing_text = ", ".join(missing_labels.get(k, k) for k in missing_keywords)
-        result.add_error(
-            Severity.RECOMMENDATION,
-            f'Рекомендуется уточнить в тексте реферата: {missing_text}'
+        result.add_rule(
+            rule_id="ABSTRACT-009",
+            status="FAIL",
+            message=f'Рекомендуется уточнить в тексте реферата: {missing_text}',
+            implemented=True,
         )
 
 
@@ -206,9 +228,13 @@ def check_abstract_size(abstract_text: str, result: ValidationResult, min_abstra
     char_count = count_non_whitespace_characters(abstract_text)
 
     if char_count < min_abstract_size:
-        result.add_error(
-            Severity.RECOMMENDATION,
-            f'Рекомендуется расширить реферат. '
-            f'Текущий объем: {char_count} символов, '
-            f'рекомендуемый минимум: {min_abstract_size} символов'
+        result.add_rule(
+            rule_id="ABSTRACT-010",
+            status="FAIL",
+            message=(
+                f'Рекомендуется расширить реферат. '
+                f'Текущий объем: {char_count} символов, '
+                f'рекомендуемый минимум: {min_abstract_size} символов'
+            ),
+            implemented=True,
         )

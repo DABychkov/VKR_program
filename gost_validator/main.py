@@ -22,6 +22,47 @@ from gost_validator.validators.appendices_validator import AppendicesValidator
 from gost_validator.models.validation_result import Severity
 
 
+def print_rich_summary(file_path: str) -> None:
+    """Печатает краткую сводку rich-признаков в обычном режиме валидации."""
+    parser = RichParser()
+    rich_doc = parser.parse(file_path)
+
+    print("\n" + "=" * 60)
+    print("RICH SUMMARY")
+    print("=" * 60)
+    print(f"Секций страниц: {len(rich_doc.pages_settings)}")
+    print(f"Абзацев: {len(rich_doc.paragraph_features)}")
+    print(f"Таблиц: {len(rich_doc.table_features)}")
+    print(f"Подписей рисунков: {len(rich_doc.figure_caption_features)}")
+    print(f"Формул: {len(rich_doc.formula_features)}")
+    print(f"Ссылок: {len(rich_doc.links_features)}")
+    print(f"Примечаний: {len(rich_doc.notes_features)}")
+    print(f"Сносок: {len(rich_doc.footnote_features)}")
+
+
+def print_rule_results_table(validator_name: str, results) -> None:
+    """Печатает список правил валидатора в табличном виде."""
+    if not results:
+        print("\n  RULES: каталог не подключен")
+        return
+
+    print("\n  RULES:")
+    print("    ID           | SEVERITY       | STATUS   | IMPLEMENTED | MESSAGE")
+    print("    " + "-" * 78)
+    for rule in results:
+        message = (rule.message or "").replace("\n", " ").strip()
+        if len(message) > 60:
+            message = message[:57] + "..."
+        print(
+            "    "
+            f"{rule.rule_id:<12} | "
+            f"{rule.severity:<14} | "
+            f"{rule.status:<8} | "
+            f"{str(rule.implemented):<11} | "
+            f"{message}"
+        )
+
+
 def debug_rich_document(file_path: str) -> None:
     """Печатает debug-отчет rich-признаков (этап 1-2)."""
     parser = RichParser()
@@ -185,6 +226,9 @@ def validate_document(file_path: str) -> None:
     parser = DocumentParser()
     doc = parser.parse(file_path)
 
+    # В обычном режиме также запускаем rich-парсер и печатаем краткую сводку.
+    print_rich_summary(file_path)
+
     # Показываем найденные секции
     print(f"\nФайл: {doc.filename}")
     print(f"Найдено секций: {len(doc.sections)}")
@@ -214,6 +258,7 @@ def validate_document(file_path: str) -> None:
         # Если ошибок нет - не выводим
         if not res.has_errors():
             print(f"\n{res.validator_name}: ВСЕ OK")
+            print_rule_results_table(res.validator_name, res.rule_results)
             continue
         
         # Иначе выводим ошибки по категориям
@@ -232,6 +277,8 @@ def validate_document(file_path: str) -> None:
             print("\n  РЕКОМЕНДАЦИИ (желательно исправить):")
             for _, msg in recommendations:
                 print(f"     - {msg}")
+
+        print_rule_results_table(res.validator_name, res.rule_results)
 
 
 def main():

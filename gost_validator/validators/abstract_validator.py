@@ -1,7 +1,7 @@
 """Валидатор реферата по ГОСТ 7.32-2017."""
 
 from ..models.document_structure import DocumentStructure
-from ..models.validation_result import ValidationResult, Severity
+from ..models.validation_result import ValidationResult
 from ..config.validation_constants import ABSTRACT_SECTION_KEYWORDS
 from ..utils.abstract_utils import (
     check_abstract_size,
@@ -28,16 +28,35 @@ class AbstractValidator(BaseValidator):
     
     def validate(self, document: DocumentStructure) -> ValidationResult:
         result = ValidationResult(validator_name="AbstractValidator")
+
+        # Базовая проверка наличия раздела всегда выполняется.
+        result.add_rule(rule_id="ABSTRACT-001", status="OK", implemented=True)
         
         # Ищем секцию РЕФЕРАТ
         abstract_text = find_section_text_by_keywords(document.sections, ABSTRACT_SECTION_KEYWORDS)
         
         if not abstract_text:
-            result.add_error(
-                Severity.CRITICAL,
-                'Структурный элемент "РЕФЕРАТ" не найден'
+            result.add_rule(
+                rule_id="ABSTRACT-001",
+                status="FAIL",
+                message='Структурный элемент "РЕФЕРАТ" не найден',
+                implemented=True,
             )
             return result
+
+        # Ниже - правила, которые можно проверить только если раздел найден.
+        for rule_id in (
+            "ABSTRACT-002",
+            "ABSTRACT-003",
+            "ABSTRACT-004",
+            "ABSTRACT-005",
+            "ABSTRACT-006",
+            "ABSTRACT-007",
+            "ABSTRACT-008",
+            "ABSTRACT-009",
+            "ABSTRACT-010",
+        ):
+            result.add_rule(rule_id=rule_id, status="OK", implemented=True)
         
         # Разбиваем реферат на строки
         lines = get_non_empty_lines(abstract_text, strip=False)
