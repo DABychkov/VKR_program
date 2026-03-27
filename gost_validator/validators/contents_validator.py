@@ -10,7 +10,11 @@ from ..utils.contents_validation_utils import (
     check_required_items,
     extract_toc_items,
 )
-from ..utils.common.section_utils import find_section_text_by_keywords, get_non_empty_lines
+from ..utils.common.section_utils import (
+    find_section_text_by_keywords,
+    get_non_empty_lines,
+    validate_pairwise_order,
+)
 from .base_validator import BaseValidator
 
 
@@ -61,9 +65,45 @@ class ContentsValidator(BaseValidator):
             )
             return result
 
-        check_required_items(toc_items, result, self.REQUIRED_ITEMS)
-        check_required_item_order(toc_items, result)
-        check_page_numbers_are_positive(toc_items, result)
-        check_dot_leaders_hint(lines, result)
+        missing_required = check_required_items(toc_items, self.REQUIRED_ITEMS)
+        for required_text in missing_required:
+            result.add_error(
+                Severity.CRITICAL,
+                f'В содержании отсутствует обязательный пункт "{required_text}"',
+            )
+
+        intro_page, conclusion_page, sources_page = check_required_item_order(toc_items)
+
+        validate_pairwise_order(
+            intro_page,
+            conclusion_page,
+            "В содержании номер страницы раздела "
+            '"ВВЕДЕНИЕ" должен быть меньше номера страницы "ЗАКЛЮЧЕНИЕ"',
+            result,
+            Severity.RECOMMENDATION,
+        )
+
+        validate_pairwise_order(
+            conclusion_page,
+            sources_page,
+            "В содержании номер страницы раздела "
+            '"ЗАКЛЮЧЕНИЕ" должен быть меньше номера страницы "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ"',
+            result,
+            Severity.RECOMMENDATION,
+        )
+
+        invalid_pages = check_page_numbers_are_positive(toc_items)
+        for item in invalid_pages:
+            result.add_error(
+                Severity.CRITICAL,
+                f'В содержании обнаружен некорректный номер страницы: "{item["title"]}" -> {item["page"]}',
+            )
+
+        if check_dot_leaders_hint(lines):
+            result.add_error(
+                Severity.RECOMMENDATION,
+                "В содержании не обнаружен явный разделитель между названием раздела и номером страницы "
+                "(отточия, табуляция или расширенный пробел). Проверьте визуальное оформление оглавления.",
+            )
 
         return result
