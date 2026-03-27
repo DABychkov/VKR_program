@@ -88,20 +88,48 @@ class AppendicesValidator(BaseValidator):
                     'По ТЗ оформляют его без точки в конце.',
                 )
 
-        sequence_errors = check_designation_sequence(
+        digits_non_sequential, cyrillic_non_sequential, latin_non_sequential = check_designation_sequence(
             appendix_entries,
             self.INVALID_CYRILLIC_LABELS,
             self.INVALID_LATIN_LABELS,
         )
-        for message in sequence_errors:
-            result.add_error(Severity.CRITICAL, message)
+        if digits_non_sequential:
+            result.add_error(
+                Severity.CRITICAL,
+                'Обозначения приложений в виде цифр идут не последовательно. '
+            )
+        if cyrillic_non_sequential:
+            result.add_error(
+                Severity.CRITICAL,
+                'Кириллические обозначения приложений идут не по порядку. '
+                'Рекомендуется проверить последовательность приложений.'
+            )
+        if latin_non_sequential:
+            result.add_error(
+                Severity.CRITICAL,
+                'Латинские обозначения приложений идут не по порядку. '
+                'Рекомендуется проверить последовательность приложений.'
+            )
 
-        contents_errors = check_contents_mentions(
+        contents_facts = check_contents_mentions(
             contents_text,
             appendix_entries,
             self.APPENDIX_KEYWORD,
         )
-        for message in contents_errors:
-            result.add_error(Severity.CRITICAL, message)
+        for label, has_appendix_marker, has_title in contents_facts:
+            if not has_appendix_marker:
+                result.add_error(
+                    Severity.CRITICAL,
+                    f'Приложение "{label}" не найдено в содержании. '
+                    'Если содержание оформлено, рекомендуется перечислить в нем все приложения.'
+                )
+                continue
+
+            if not has_title:
+                result.add_error(
+                    Severity.CRITICAL,
+                    f'В содержании найдено обозначение приложения "{label}", но не найдено его название. '
+                    'Указать в содержании обозначение и наименование приложения.'
+                )
 
         return result
