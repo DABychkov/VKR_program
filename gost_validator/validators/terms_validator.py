@@ -41,7 +41,7 @@ class TermsValidator(BaseValidator):
                 result.add_error(
                     Severity.RECOMMENDATION,
                     'Раздел "ТЕРМИНЫ И ОПРЕДЕЛЕНИЯ" не найден. '
-                    'Если в документе используются термины, рекомендуется добавить раздел 1.6.',
+                    'Если в документе используются термины, рекомендуется добавить.',
                 )
             return result
 
@@ -69,26 +69,23 @@ class TermsValidator(BaseValidator):
         indented = [raw for _, _, raw in items if has_left_indentation(raw)]
         if indented:
             result.add_error(
-                Severity.RECOMMENDATION,
-                'В части строк раздела 1.6 обнаружен абзацный отступ перед термином. '
-                'Рекомендуется располагать термины без отступа.',
+                Severity.CRITICAL,
+                'Располагают термины без отступа.',
             )
 
         # По ТЗ: без знаков препинания в конце термина.
         bad_trailing = [term for term in terms if term.rstrip().endswith((".", ";", ":", ","))]
         if bad_trailing:
             result.add_error(
-                Severity.RECOMMENDATION,
-                'Некоторые термины в разделе 1.6 заканчиваются знаком препинания. '
-                'Рекомендуется убрать пунктуацию в конце левой части статьи.',
+                Severity.CRITICAL,
+                'Рекомендуется убрать пунктуацию терминов в конце левой части статьи.',
             )
 
         # По ТЗ: алфавитный порядок.
         if not is_alphabetical(terms):
             result.add_error(
-                Severity.RECOMMENDATION,
-                'Термины в разделе 1.6 не в алфавитном порядке. '
-                'Рекомендуется упорядочить список по алфавиту.',
+                Severity.CRITICAL,
+                'Рекомендуется упорядочить список терминов по алфавиту.',
             )
 
         return result

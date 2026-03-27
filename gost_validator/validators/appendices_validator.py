@@ -58,13 +58,6 @@ class AppendicesValidator(BaseValidator):
                     '"ПРИЛОЖЕНИЕ".',
                 )
                 continue
-
-            if not is_valid_label(label, self.INVALID_CYRILLIC_LABELS, self.INVALID_LATIN_LABELS):
-                result.add_error(
-                    Severity.CRITICAL,
-                    f'Обозначение приложения "{label}" не соответствует допустимому формату ГОСТ.',
-                )
-
             lines = get_non_empty_lines(section_text, strip=True)
             if not lines:
                 result.add_error(
@@ -83,9 +76,9 @@ class AppendicesValidator(BaseValidator):
                 )
             elif title_line.endswith("."):
                 result.add_error(
-                    Severity.RECOMMENDATION,
+                    Severity.CRITICAL,
                     f'Заголовок приложения "{label}" заканчивается точкой. '
-                    'По ТЗ рекомендуется оформлять его без точки в конце.',
+                    'По ТЗ оформляют его без точки в конце.',
                 )
 
         check_designation_sequence(

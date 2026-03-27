@@ -40,25 +40,6 @@ def extract_toc_items(lines: list[str]) -> list[dict[str, int | str]]:
     return items
 
 
-def check_required_items(
-    toc_items: list[dict[str, int | str]],
-    result: ValidationResult,
-    required_items: dict[str, str],
-) -> None:
-    """Проверяет обязательные позиции в содержании по ТЗ."""
-    titles_upper = [str(item["title_upper"]) for item in toc_items]
-    missing_required = find_missing_needles(
-        titles_upper,
-        list(required_items.keys()),
-        case_sensitive=True,
-    )
-    for required_text in missing_required:
-        result.add_error(
-            Severity.CRITICAL,
-            f'В содержании отсутствует обязательный пункт "{required_text}"',
-        )
-
-
 def check_required_item_order(toc_items: list[dict[str, int | str]], result: ValidationResult) -> None:
     """Проверяет логический порядок страниц обязательных разделов."""
     
@@ -83,6 +64,24 @@ def check_required_item_order(toc_items: list[dict[str, int | str]], result: Val
         '"ЗАКЛЮЧЕНИЕ" должен быть меньше номера страницы "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ"',
         result, Severity.RECOMMENDATION
     )
+
+def check_required_items(
+    toc_items: list[dict[str, int | str]],
+    result: ValidationResult,
+    required_items: dict[str, str],
+) -> None:
+    """Проверяет обязательные позиции в содержании по ТЗ."""
+    titles_upper = [str(item["title_upper"]) for item in toc_items]
+    missing_required = find_missing_needles(
+        titles_upper,
+        list(required_items.keys()),
+        case_sensitive=True,
+    )
+    for required_text in missing_required:
+        result.add_error(
+            Severity.CRITICAL,
+            f'В содержании отсутствует обязательный пункт "{required_text}"',
+        )
 
 
 def check_page_numbers_are_positive(

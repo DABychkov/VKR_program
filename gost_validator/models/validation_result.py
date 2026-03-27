@@ -69,7 +69,7 @@ class ValidationResult:
             rule_id=rule_id,
             section="НЕ_КЛАССИФИЦИРОВАНО",
             description="Правило не найдено в каталоге",
-            severity=severity.value,
+            severity=severity,
             status=normalized_status,
             message=message,
             gost_ref=gost_ref,

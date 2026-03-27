@@ -54,16 +54,15 @@ def check_designation_sequence(
         order = [char for char in alphabet if char not in invalid_labels]
         indexes = [order.index(label) for label in labels if label in order]
         if len(indexes) == len(labels) and not check_is_sequential(indexes):
-            result.add_error(Severity.RECOMMENDATION, error_message)
+            result.add_error(Severity.CRITICAL, error_message)
         return True
 
     if all(label.isdigit() for label in labels):
         numbers = [int(label) for label in labels]
         if not check_is_sequential(numbers):
             result.add_error(
-                Severity.RECOMMENDATION,
+                Severity.CRITICAL,
                 'Обозначения приложений в виде цифр идут не последовательно. '
-                'Рекомендуется проверить порядок приложений.',
             )
         return
 
@@ -104,7 +103,7 @@ def check_contents_mentions(
         appendix_marker = f"{appendix_keyword} {label}".upper()
         if appendix_marker not in contents_upper:
             result.add_error(
-                Severity.RECOMMENDATION,
+                Severity.CRITICAL,
                 f'Приложение "{label}" не найдено в содержании. '
                 'Если содержание оформлено, рекомендуется перечислить в нем все приложения.',
             )
@@ -113,7 +112,7 @@ def check_contents_mentions(
         normalized_title = title.upper()
         if normalized_title and normalized_title not in contents_upper:
             result.add_error(
-                Severity.RECOMMENDATION,
+                Severity.CRITICAL,
                 f'В содержании найдено обозначение приложения "{label}", но не найдено его название. '
-                'Рекомендуется указать в содержании обозначение и наименование приложения.',
+                'Указать в содержании обозначение и наименование приложения.',
             )

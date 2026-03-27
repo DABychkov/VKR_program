@@ -38,7 +38,7 @@ class AbbreviationsValidator(BaseValidator):
                 result.add_error(
                     Severity.RECOMMENDATION,
                     'Раздел "ПЕРЕЧЕНЬ СОКРАЩЕНИЙ И ОБОЗНАЧЕНИЙ" не найден. '
-                    'Если в документе используются сокращения/обозначения, рекомендуется добавить раздел 1.7 '
+                    'Если в документе используются сокращения/обозначения, рекомендуется добавить'
                     'или объединенный раздел "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ".',
                 )
             return result
@@ -68,7 +68,7 @@ class AbbreviationsValidator(BaseValidator):
         if indented:
             result.add_error(
                 Severity.RECOMMENDATION,
-                'В части строк раздела 1.7 обнаружен абзацный отступ перед сокращением. '
+                'В части строк обнаружен абзацный отступ перед сокращением. '
                 'Рекомендуется располагать сокращения без отступа.',
             )
 
@@ -76,7 +76,7 @@ class AbbreviationsValidator(BaseValidator):
         if not is_alphabetical(abbreviations):
             result.add_error(
                 Severity.CRITICAL,
-                'Сокращения в разделе 1.7 не в алфавитном порядке. '
+                'Сокращения не в алфавитном порядке. '
                 'Рекомендуется упорядочить список по алфавиту.',
             )
 

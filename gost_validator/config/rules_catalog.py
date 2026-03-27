@@ -16,7 +16,6 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
         RuleResult("TITLE-006", "ТИТУЛЬНЫЙ_ЛИСТ", "Найден год", Severity.CRITICAL.value),
         RuleResult("TITLE-007", "ТИТУЛЬНЫЙ_ЛИСТ", "Год не больше текущего", Severity.CRITICAL.value),
         RuleResult("TITLE-008", "ТИТУЛЬНЫЙ_ЛИСТ", "Найдено место составления", Severity.RECOMMENDATION.value),
-        RuleResult("TITLE-009", "ТИТУЛЬНЫЙ_ЛИСТ", "Указан регистрационный номер НИОКТР", Severity.RECOMMENDATION.value),
     ],
     "AbstractValidator": [
         RuleResult("ABSTRACT-001", "РЕФЕРАТ", "Раздел РЕФЕРАТ найден", Severity.CRITICAL.value),
@@ -61,10 +60,10 @@ def build_default_rule_results(validator_name: str) -> list[RuleResult]:
             section=rule.section,
             description=rule.description,
             severity=rule.severity,
-            status="SKIPPED",
+            status="OK",
             message=None,
             gost_ref="0",
-            implemented=False,
+            implemented=rule.implemented,
         )
         for rule in defaults
     ]

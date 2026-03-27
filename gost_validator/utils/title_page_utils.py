@@ -3,7 +3,7 @@
 from datetime import datetime
 
 from ..config.regex_patterns import RE_INITIALS, RE_YEAR_1900_2099
-from ..models.validation_result import ValidationResult
+from ..models.validation_result import Severity, ValidationResult
 from .common.regex_utils import extract_int_by_pattern, find_last_int_by_pattern
 from .common.section_utils import find_first_index_contains, text_contains_all, text_contains_any
 from .common.text_utils import is_uppercase_text
@@ -130,31 +130,18 @@ def check_organization(paragraphs: list[str], result: ValidationResult) -> None:
     org_block = find_organization_block(paragraphs)
 
     if not org_block:
-        result.add_rule(
-            rule_id="TITLE-001",
-            status="FAIL",
-            message="Не найдено наименование организации в верхней части титульника",
-            implemented=True,
+        result.add_error(
+            Severity.CRITICAL,
+            "Не найдено наименование организации в верхней части титульника, либо оно не написан заглавными буквами"
         )
         return
-
-    for line in org_block:
-        if not is_uppercase_text(line):
-            result.add_rule(
-                rule_id="TITLE-001",
-                status="FAIL",
-                message=f"Наименование организации должно быть капсом: '{line}'",
-                implemented=True,
-            )
 
     org_text = ' '.join(org_block).upper()
     keywords = ["МИНИСТЕРСТВО", "ФЕДЕРАЛЬНОЕ", "АГЕНТСТВО", "УНИВЕРСИТЕТ"]
     if not text_contains_any(org_text, keywords, case_sensitive=True):
-        result.add_rule(
-            rule_id="TITLE-001",
-            status="FAIL",
-            message="Наименование организации возможно некорректно (нет ключевых слов: Министерство, Федеральное и т.д.)",
-            implemented=True,
+        result.add_error(
+            Severity.RECOMMENDATION,
+            "Наименование организации возможно некорректно (нет ключевых слов: Министерство, Федеральное и т.д.)"
         )
 
 
@@ -163,28 +150,22 @@ def check_metadata(paragraphs: list[str], result: ValidationResult, has_digit_pa
     metadata = find_metadata_block(paragraphs)
 
     if "УДК" not in metadata:
-        result.add_rule(
-            rule_id="TITLE-002",
-            status="FAIL",
-            message="Отсутствует индекс УДК на титульном листе",
-            implemented=True,
+        result.add_error(
+            Severity.CRITICAL,
+            "Отсутствует индекс УДК на титульном листе"
         )
     else:
         udk_line = metadata["УДК"]
         if not has_digit_pattern.search(udk_line):
-            result.add_rule(
-                rule_id="TITLE-003",
-                status="FAIL",
-                message="УДК должен содержать цифры",
-                implemented=True,
+            result.add_error(
+                Severity.CRITICAL,
+                "УДК должен содержать цифры"
             )
 
     if "Рег. N НИОКТР" not in metadata:
-        result.add_rule(
-            rule_id="TITLE-009",
-            status="FAIL",
-            message="Рекомендуется указать регистрационный номер НИОКТР",
-            implemented=True,
+        result.add_error(
+            Severity.RECOMMENDATION,
+            "Рекомендуется указать регистрационный номер НИОКТР"
         )
 
 
@@ -193,32 +174,20 @@ def check_approval_stamps(paragraphs: list[str], result: ValidationResult) -> No
     _, utv = find_approval_stamp(paragraphs)
 
     if not utv:
-        result.add_rule(
-            rule_id="TITLE-004",
-            status="FAIL",
-            message="Отсутствует гриф УТВЕРЖДАЮ на титульном листе",
-            implemented=True,
+        result.add_error(
+            Severity.CRITICAL,
+            "Отсутствует гриф УТВЕРЖДАЮ на титульном листе либо он написан не заглавными буквами"
         )
         return
-
-    if "УТВЕРЖДАЮ" not in utv:
-        result.add_rule(
-            rule_id="TITLE-004",
-            status="FAIL",
-            message="Гриф УТВЕРЖДАЮ должен быть написан заглавными буквами",
-            implemented=True,
-        )
 
     utv_idx = find_first_index_contains(paragraphs, "УТВЕРЖДАЮ")
     if utv_idx is not None:
         context = '\n'.join(paragraphs[utv_idx:utv_idx + 5])
         initials = extract_initials(context)
         if not initials:
-            result.add_rule(
-                rule_id="TITLE-004",
-                status="FAIL",
-                message="После грифа УТВЕРЖДАЮ не найдены инициалы (формат: А.В.)",
-                implemented=True,
+            result.add_error(
+                Severity.CRITICAL,
+                "После грифа УТВЕРЖДАЮ не найдены инициалы (формат: А.В.)"
             )
 
 
@@ -227,29 +196,23 @@ def check_document_type(paragraphs: list[str], result: ValidationResult) -> None
     doc_type = find_document_type(paragraphs)
 
     if not doc_type:
-        result.add_rule(
-            rule_id="TITLE-005",
-            status="FAIL",
-            message="Не найден тип документа (ОТЧЕТ О НАУЧНО-ИССЛЕДОВАТЕЛЬСКОЙ РАБОТЕ)",
-            implemented=True,
+        result.add_error(
+            Severity.CRITICAL,
+            "Не найден тип документа (ОТЧЕТ О НАУЧНО-ИССЛЕДОВАТЕЛЬСКОЙ РАБОТЕ)"
         )
         return
 
     lines = doc_type.split('\n')
     if len(lines) != 2:
-        result.add_rule(
-            rule_id="TITLE-005",
-            status="FAIL",
-            message="Тип документа должен быть на двух строках: 'ОТЧЕТ' и 'О НАУЧНО-ИССЛЕДОВАТЕЛЬСКОЙ РАБОТЕ'",
-            implemented=True,
+        result.add_error(
+            Severity.CRITICAL,
+            "Тип документа должен быть на двух строках: 'ОТЧЕТ' и 'О НАУЧНО-ИССЛЕДОВАТЕЛЬСКОЙ РАБОТЕ'"
         )
 
     if not all(is_uppercase_text(line) for line in lines):
-        result.add_rule(
-            rule_id="TITLE-005",
-            status="FAIL",
-            message="Тип документа должен быть написан заглавными буквами",
-            implemented=True,
+        result.add_error(
+            Severity.CRITICAL,
+            "Тип документа должен быть написан заглавными буквами"
         )
 
 
@@ -258,27 +221,21 @@ def check_place_and_year(paragraphs: list[str], result: ValidationResult) -> Non
     place, year = find_place_and_year(paragraphs)
 
     if not year:
-        result.add_rule(
-            rule_id="TITLE-006",
-            status="FAIL",
-            message="Не найден год на титульном листе",
-            implemented=True,
+        result.add_error(
+            Severity.CRITICAL,
+            "Не найден год на титульном листе"
         )
         return
 
     current_year = datetime.now().year
     if year > current_year:
-        result.add_rule(
-            rule_id="TITLE-007",
-            status="FAIL",
-            message=f"Год на титульном листе ({year}) больше текущего ({current_year})",
-            implemented=True,
+        result.add_error(
+            Severity.CRITICAL,
+            f"Год на титульном листе ({year}) больше текущего ({current_year})"
         )
 
     if not place:
-        result.add_rule(
-            rule_id="TITLE-008",
-            status="FAIL",
-            message="Рекомендуется указать место (город) на титульном листе",
-            implemented=True,
+        result.add_error(
+            Severity.RECOMMENDATION,
+            "Рекомендуется указать место (город) на титульном листе"
         )

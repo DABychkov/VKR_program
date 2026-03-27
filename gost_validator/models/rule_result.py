@@ -11,7 +11,7 @@ class RuleResult:
     section: str
     description: str
     severity: str  # CRITICAL | RECOMMENDATION
-    status: str = "SKIPPED"  # SKIPPED | OK | FAIL
+    status: str = "OK"  # OK | FAIL
     message: str | None = None
     gost_ref: str = "0"
-    implemented: bool = False
+    implemented: bool = True
