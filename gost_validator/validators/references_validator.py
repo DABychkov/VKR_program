@@ -66,7 +66,21 @@ class ReferencesValidator(BaseValidator):
             )
             return result
 
-        check_numbering_sequence(list_items, result)
-        check_initials_presence(list_items, result, self._INITIALS_RE)
+        numbering_ok, expected, actual = check_numbering_sequence(list_items)
+        if not numbering_ok:
+            result.add_error(
+                Severity.RECOMMENDATION,
+                f"Нарушена нумерация в списке использованных источников: "
+                f"ожидался номер {expected}, найден {actual}.",
+            )
+
+        has_initials = check_initials_presence(list_items, self._INITIALS_RE)
+        if list_items and not has_initials:
+            result.add_error(
+                Severity.RECOMMENDATION,
+                'В записях "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ" не обнаружены инициалы авторов '
+                '(ожидается формат "Фамилия И.О." или "И.О. Фамилия"). '
+                'Рекомендуется проверить оформление источников.',
+            )
 
         return result
