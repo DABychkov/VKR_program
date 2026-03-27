@@ -1,7 +1,7 @@
 """Валидаторы для проверки титульного листа."""
 
 from ..models.document_structure import DocumentStructure
-from ..models.validation_result import ValidationResult
+from ..models.validation_result import Severity, ValidationResult
 from ..config.regex_patterns import RE_HAS_DIGIT
 from ..utils.title_page_utils import (
     check_approval_stamps,
@@ -37,18 +37,88 @@ class TitlePageValidator(BaseValidator):
         paragraphs = document.title_page_text.split('\n')
         
         # 1. Проверка организации (обязательно)
-        check_organization(paragraphs, result)
+        org_block, has_org_keywords = check_organization(paragraphs)
+        if not org_block:
+            result.add_error(
+                Severity.CRITICAL,
+                "Не найдено наименование организации в верхней части титульника, либо оно не написан заглавными буквами"
+            )
+        elif not has_org_keywords:
+            result.add_error(
+                Severity.RECOMMENDATION,
+                "Наименование организации возможно некорректно (нет ключевых слов: Министерство, Федеральное и т.д.)"
+            )
         
         # 2. Проверка метаданных УДК (обязательно)
-        check_metadata(paragraphs, result, RE_HAS_DIGIT)
+        has_udk, udk_has_digits, has_nioktr = check_metadata(paragraphs, RE_HAS_DIGIT)
+        if not has_udk:
+            result.add_error(
+                Severity.CRITICAL,
+                "Отсутствует индекс УДК на титульном листе"
+            )
+        elif not udk_has_digits:
+            result.add_error(
+                Severity.CRITICAL,
+                "УДК должен содержать цифры"
+            )
+
+        if not has_nioktr:
+            result.add_error(
+                Severity.RECOMMENDATION,
+                "Рекомендуется указать регистрационный номер НИОКТР"
+            )
         
         # 3. Проверка грифов (УТВЕРЖДАЮ обязательно, СОГЛАСОВАНО условно)
-        check_approval_stamps(paragraphs, result)
+        utv, initials_found = check_approval_stamps(paragraphs)
+        if not utv:
+            result.add_error(
+                Severity.CRITICAL,
+                "Отсутствует гриф УТВЕРЖДАЮ на титульном листе либо он написан не заглавными буквами"
+            )
+        elif not initials_found:
+            result.add_error(
+                Severity.CRITICAL,
+                "После грифа УТВЕРЖДАЮ не найдены инициалы (формат: А.В.)"
+            )
         
         # 4. Проверка вида документа (обязательно)
-        check_document_type(paragraphs, result)
+        doc_type, has_two_lines, is_uppercase = check_document_type(paragraphs)
+        if not doc_type:
+            result.add_error(
+                Severity.CRITICAL,
+                "Не найден тип документа (ОТЧЕТ О НАУЧНО-ИССЛЕДОВАТЕЛЬСКОЙ РАБОТЕ)"
+            )
+        else:
+            if not has_two_lines:
+                result.add_error(
+                    Severity.CRITICAL,
+                    "Тип документа должен быть на двух строках: 'ОТЧЕТ' и 'О НАУЧНО-ИССЛЕДОВАТЕЛЬСКОЙ РАБОТЕ'"
+                )
+
+            if not is_uppercase:
+                result.add_error(
+                    Severity.CRITICAL,
+                    "Тип документа должен быть написан заглавными буквами"
+                )
         
         # 5. Проверка места и года (обязательно)
-        check_place_and_year(paragraphs, result)
+        place, year, current_year, is_future_year = check_place_and_year(paragraphs)
+        if not year:
+            result.add_error(
+                Severity.CRITICAL,
+                "Не найден год на титульном листе"
+            )
+        else:
+            if is_future_year:
+                result.add_error(
+                    Severity.CRITICAL,
+                    f"Год на титульном листе ({year}) больше текущего ({current_year})"
+                )
+
+            if not place:
+                result.add_error(
+                    Severity.RECOMMENDATION,
+                    "Рекомендуется указать место (город) на титульном листе"
+                )
         
         return result
