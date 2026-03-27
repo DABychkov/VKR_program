@@ -2,7 +2,6 @@
 
 from re import Pattern
 
-from ..models.validation_result import Severity, ValidationResult
 from .common.section_utils import check_is_sequential
 
 
@@ -37,34 +36,31 @@ def is_valid_label(
 
 def check_designation_sequence(
     appendix_entries: list[tuple[str, str, str]],
-    result: ValidationResult,
     invalid_cyrillic_labels: set[str],
     invalid_latin_labels: set[str],
-) -> None:
+) -> list[str]:
     """Проверяет последовательность обозначений приложений."""
     labels = [label for label, _, _ in appendix_entries]
     if len(labels) < 2:
-        return
+        return []
+
+    errors: list[str] = []
 
     def _check_letter_sequence(
         alphabet: str,
         invalid_labels: set[str],
         error_message: str,
-    ) -> bool:
+    ) -> None:
         order = [char for char in alphabet if char not in invalid_labels]
         indexes = [order.index(label) for label in labels if label in order]
         if len(indexes) == len(labels) and not check_is_sequential(indexes):
-            result.add_error(Severity.CRITICAL, error_message)
-        return True
+            errors.append(error_message)
 
     if all(label.isdigit() for label in labels):
         numbers = [int(label) for label in labels]
         if not check_is_sequential(numbers):
-            result.add_error(
-                Severity.CRITICAL,
-                'Обозначения приложений в виде цифр идут не последовательно. '
-            )
-        return
+            errors.append('Обозначения приложений в виде цифр идут не последовательно. ')
+        return errors
 
     if all(len(label) == 1 and "А" <= label <= "Я" for label in labels):
         _check_letter_sequence(
@@ -75,7 +71,7 @@ def check_designation_sequence(
                 'Рекомендуется проверить последовательность приложений.'
             ),
         )
-        return
+        return errors
 
     if all(len(label) == 1 and "A" <= label <= "Z" for label in labels):
         _check_letter_sequence(
@@ -86,33 +82,34 @@ def check_designation_sequence(
                 'Рекомендуется проверить последовательность приложений.'
             ),
         )
+    return errors
 
 
 def check_contents_mentions(
     contents_text: str | None,
     appendix_entries: list[tuple[str, str, str]],
-    result: ValidationResult,
     appendix_keyword: str,
-) -> None:
+) -> list[str]:
     """Проверяет, что приложения и их названия указаны в содержании."""
     if not contents_text:
-        return
+        return []
+
+    errors: list[str] = []
 
     contents_upper = contents_text.upper()
     for label, title, _ in appendix_entries:
         appendix_marker = f"{appendix_keyword} {label}".upper()
         if appendix_marker not in contents_upper:
-            result.add_error(
-                Severity.CRITICAL,
+            errors.append(
                 f'Приложение "{label}" не найдено в содержании. '
-                'Если содержание оформлено, рекомендуется перечислить в нем все приложения.',
+                'Если содержание оформлено, рекомендуется перечислить в нем все приложения.'
             )
             continue
 
         normalized_title = title.upper()
         if normalized_title and normalized_title not in contents_upper:
-            result.add_error(
-                Severity.CRITICAL,
+            errors.append(
                 f'В содержании найдено обозначение приложения "{label}", но не найдено его название. '
-                'Указать в содержании обозначение и наименование приложения.',
+                'Указать в содержании обозначение и наименование приложения.'
             )
+    return errors

@@ -88,12 +88,20 @@ class AppendicesValidator(BaseValidator):
                     'По ТЗ оформляют его без точки в конце.',
                 )
 
-        check_designation_sequence(
+        sequence_errors = check_designation_sequence(
             appendix_entries,
-            result,
             self.INVALID_CYRILLIC_LABELS,
             self.INVALID_LATIN_LABELS,
         )
-        check_contents_mentions(contents_text, appendix_entries, result, self.APPENDIX_KEYWORD)
+        for message in sequence_errors:
+            result.add_error(Severity.CRITICAL, message)
+
+        contents_errors = check_contents_mentions(
+            contents_text,
+            appendix_entries,
+            self.APPENDIX_KEYWORD,
+        )
+        for message in contents_errors:
+            result.add_error(Severity.CRITICAL, message)
 
         return result
