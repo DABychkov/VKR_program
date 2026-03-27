@@ -121,6 +121,7 @@ if char_count < min_abstract_size: add_error(...)
 ### APPENDICES
 - APPX-001: приложения найдены (RECOMMENDATION)
 - APPX-002: в заголовке есть обозначение после ПРИЛОЖЕНИЕ (CRITICAL)
+- APPX-003: обозначение приложения валидно (CRITICAL)
 - APPX-004: приложение не пустое (CRITICAL)
 - APPX-005: после заголовка есть отдельное название (CRITICAL)
 - APPX-006: заголовок приложения без точки в конце (CRITICAL)
