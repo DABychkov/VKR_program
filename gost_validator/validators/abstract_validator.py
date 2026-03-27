@@ -43,15 +43,73 @@ class AbstractValidator(BaseValidator):
         lines = get_non_empty_lines(abstract_text, strip=False)
         
         # 1. Проверка сведений об объеме
-        check_volume_info(lines, result)
+        found_metrics, has_invalid_volume_separator = check_volume_info(lines)
+        if len(found_metrics) < 3:
+            result.add_error(
+                Severity.CRITICAL,
+                f'Неполна информация об объеме отчета. Найдено: {found_metrics}. '
+                'Требуется указать: страницы, книги, иллюстрации, таблицы, источники'
+            )
+        if has_invalid_volume_separator:
+            result.add_error(
+                Severity.CRITICAL,
+                'Сведения об объеме должны разделяться запятыми и располагаться в одну строку'
+            )
         
         # 2. Проверка ключевых слов
-        check_keywords(lines, result)
+        keywords_section, format_check = check_keywords(lines)
+        if not keywords_section:
+            result.add_error(
+                Severity.RECOMMENDATION,
+                'Ключевые слова не найдены или неправильно отформатированы'
+            )
+        else:
+            if not format_check["is_uppercase"]:
+                result.add_error(
+                    Severity.CRITICAL,
+                    'Ключевые слова должны быть написаны прописными буквами (капсом)'
+                )
+
+            if not format_check["has_commas"]:
+                result.add_error(
+                    Severity.CRITICAL,
+                    'Ключевые слова должны разделяться запятыми'
+                )
+
+            if not format_check["no_trailing_period"]:
+                result.add_error(
+                    Severity.CRITICAL,
+                    'Ключевые слова не должны заканчиваться точкой'
+                )
+
+            if not format_check["no_line_breaks"]:
+                result.add_error(
+                    Severity.CRITICAL,
+                    'Ключевые слова должны располагаться в одну строку без переносов'
+                )
         
         # 3. Проверка текста реферата (рекомендации)
-        check_abstract_text(abstract_text, result)
+        missing_keywords = check_abstract_text(abstract_text)
+        if missing_keywords:
+            missing_labels = {
+                "goal": "цель",
+                "object": "объект",
+                "recommendations": "рекомендации"
+            }
+            missing_text = ", ".join(missing_labels.get(k, k) for k in missing_keywords)
+            result.add_error(
+                Severity.RECOMMENDATION,
+                f'Рекомендуется уточнить в тексте реферата: {missing_text}'
+            )
         
         # 4. Проверка объема реферата
-        check_abstract_size(abstract_text, result, self.MIN_ABSTRACT_SIZE)
+        char_count = check_abstract_size(abstract_text)
+        if char_count < self.MIN_ABSTRACT_SIZE:
+            result.add_error(
+                Severity.RECOMMENDATION,
+                f'Рекомендуется расширить реферат. '
+                f'Текущий объем: {char_count} символов, '
+                f'рекомендуемый минимум: {self.MIN_ABSTRACT_SIZE} символов'
+            )
         
         return result

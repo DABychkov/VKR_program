@@ -7,7 +7,6 @@ from ..config.regex_patterns import (
     RE_WORD_OBJECT,
     RE_WORD_RECOMMEND,
 )
-from ..models.validation_result import Severity, ValidationResult
 from .common.regex_utils import extract_int_by_pattern
 from .common.text_utils import count_non_whitespace_characters
 
@@ -122,93 +121,35 @@ def find_text_keywords_in_abstract(text: str) -> dict[str, bool]:
     return keywords
 
 
-def check_volume_info(lines: list[str], result: ValidationResult) -> None:
-    """Проверка сведений об объеме отчета в первых строках реферата."""
+def check_volume_info(lines: list[str]) -> tuple[list[str], bool]:
+    """Возвращает найденные метрики и флаг некорректного формата разделителей."""
     first_part = '\n'.join(lines[:5])
     metrics = extract_volume_metrics(first_part)
 
     required_metrics = ["pages", "books", "illustrations", "tables", "sources"]
     found_metrics = [k for k, v in metrics.items() if v is not None and k in required_metrics]
 
-    if len(found_metrics) < 3:
-        result.add_error(
-            Severity.CRITICAL,
-            f'Неполна информация об объеме отчета. Найдено: {found_metrics}. '
-            'Требуется указать: страницы, книги, иллюстрации, таблицы, источники'
-        )
-
     volume_line = first_part.strip()
-    if found_metrics and ',' not in volume_line:
-        result.add_error(
-            Severity.CRITICAL,
-            'Сведения об объеме должны разделяться запятыми и располагаться в одну строку'
-        )
+    return found_metrics, bool(found_metrics and ',' not in volume_line)
 
 
-def check_keywords(lines: list[str], result: ValidationResult) -> None:
-    """Проверка формата и наличия ключевых слов."""
+def check_keywords(lines: list[str]) -> tuple[str | None, dict[str, bool] | None]:
+    """Возвращает найденную строку ключевых слов и результаты проверки формата."""
     keywords_section = find_keywords_section(lines)
 
     if not keywords_section:
-        result.add_error(
-            Severity.RECOMMENDATION,
-            'Ключевые слова не найдены или неправильно отформатированы'
-        )
-        return
+        return None, None
 
     format_check = check_keywords_format(keywords_section)
+    return keywords_section, format_check
 
-    if not format_check["is_uppercase"]:
-        result.add_error(
-            Severity.CRITICAL,
-            'Ключевые слова должны быть написаны прописными буквами (капсом)'
-        )
-
-    if not format_check["has_commas"]:
-        result.add_error(
-            Severity.CRITICAL,
-            'Ключевые слова должны разделяться запятыми'
-        )
-
-    if not format_check["no_trailing_period"]:
-        result.add_error(
-            Severity.CRITICAL,
-            'Ключевые слова не должны заканчиваться точкой'
-        )
-
-    if not format_check["no_line_breaks"]:
-        result.add_error(
-            Severity.CRITICAL,
-            'Ключевые слова должны располагаться в одну строку без переносов'
-        )
-
-
-def check_abstract_text(abstract_text: str, result: ValidationResult) -> None:
-    """Проверка текста реферата на наличие ключевых фраз (рекомендация)."""
+def check_abstract_text(abstract_text: str) -> list[str]:
+    """Возвращает список отсутствующих ключевых фраз текста реферата."""
     keywords = find_text_keywords_in_abstract(abstract_text)
     missing_keywords = [k for k, v in keywords.items() if not v]
-
-    if missing_keywords:
-        missing_labels = {
-            "goal": "цель",
-            "object": "объект",
-            "recommendations": "рекомендации"
-        }
-        missing_text = ", ".join(missing_labels.get(k, k) for k in missing_keywords)
-        result.add_error(
-            Severity.RECOMMENDATION,
-            f'Рекомендуется уточнить в тексте реферата: {missing_text}'
-        )
+    return missing_keywords
 
 
-def check_abstract_size(abstract_text: str, result: ValidationResult, min_abstract_size: int) -> None:
-    """Проверка того, что объем реферата достаточный."""
-    char_count = count_non_whitespace_characters(abstract_text)
-
-    if char_count < min_abstract_size:
-        result.add_error(
-            Severity.RECOMMENDATION,
-            f'Рекомендуется расширить реферат. '
-            f'Текущий объем: {char_count} символов, '
-            f'рекомендуемый минимум: {min_abstract_size} символов'
-        )
+def check_abstract_size(abstract_text: str) -> int:
+    """Возвращает размер текста реферата без пробельных символов."""
+    return count_non_whitespace_characters(abstract_text)
