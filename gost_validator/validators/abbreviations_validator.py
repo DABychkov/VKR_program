@@ -32,7 +32,7 @@ class AbbreviationsValidator(BaseValidator):
         section_text = find_section_text_by_keywords(document.sections, ABBREVIATIONS_SECTION_KEYWORDS)
         has_combined = has_section_by_keywords(document.sections, COMBINED_DEFINITIONS_SECTION_KEYWORDS)
 
-        # Условно-обязательный: если нет 1.7 и нет объединенного раздела -> рекомендация.
+        # Условно-обязательный: если нету этого структурного элемента и нет объединенного раздела -> рекомендация.
         if not section_text:
             if not has_combined:
                 result.add_error(
@@ -67,7 +67,7 @@ class AbbreviationsValidator(BaseValidator):
         indented = [raw for _, _, raw in items if has_left_indentation(raw)]
         if indented:
             result.add_error(
-                Severity.RECOMMENDATION,
+                Severity.CRITICAL,
                 'В части строк обнаружен абзацный отступ перед сокращением. '
                 'Рекомендуется располагать сокращения без отступа.',
             )
@@ -78,6 +78,14 @@ class AbbreviationsValidator(BaseValidator):
                 Severity.CRITICAL,
                 'Сокращения не в алфавитном порядке. '
                 'Рекомендуется упорядочить список по алфавиту.',
+            )
+
+        # По ТЗ: без знаков препинания в конце сокращения.
+        bad_trailing = [abbr for abbr in abbreviations if abbr.rstrip().endswith((".", ";", ":", ","))]
+        if bad_trailing:
+            result.add_error(
+                Severity.CRITICAL,
+                'Рекомендуется убрать пунктуацию сокращений в конце левой части статьи.',
             )
 
         return result

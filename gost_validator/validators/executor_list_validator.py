@@ -31,7 +31,7 @@ class ExecutorListValidator(BaseValidator):
             # Если секции нет, проверяем титульник
             title_error = check_title_page_executor(document.title_page_text, RE_EXECUTOR_ON_TITLE)
             if title_error:
-                result.add_error(Severity.RECOMMENDATION, title_error)
+                result.add_error(Severity.CRITICAL, title_error)
         else:
             # Если секция есть, валидируем её
             lines = get_non_empty_lines(section_text, strip=False)

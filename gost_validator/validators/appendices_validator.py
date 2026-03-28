@@ -85,7 +85,7 @@ class AppendicesValidator(BaseValidator):
                 result.add_error(
                     Severity.CRITICAL,
                     f'Заголовок приложения "{label}" заканчивается точкой. '
-                    'По ТЗ оформляют его без точки в конце.',
+                    'По ГОСТ оформляют его без точки в конце.',
                 )
 
         digits_non_sequential, cyrillic_non_sequential, latin_non_sequential = check_designation_sequence(

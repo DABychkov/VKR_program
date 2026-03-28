@@ -43,8 +43,8 @@ class ValidationResult:
     ) -> None:
         """Обновляет правило в rule_results (или добавляет, если его нет в каталоге)."""
         normalized_status = status.upper().strip()
-        if normalized_status not in {"SKIPPED", "OK", "FAIL"}:
-            raise ValueError("status must be 'SKIPPED', 'OK' or 'FAIL'")
+        if normalized_status not in {"SKIP", "OK", "FAIL"}:
+            raise ValueError("status must be 'SKIP', 'OK' or 'FAIL'")
 
         for rule in self.rule_results:
             if rule.rule_id != rule_id:
@@ -56,6 +56,7 @@ class ValidationResult:
             rule.gost_ref = gost_ref
             rule.implemented = implemented
 
+            # Добавляем ошибку только если переходим в FAIL и еще не были в FAIL
             if normalized_status == "FAIL" and not already_failed:
                 rule_severity = Severity(rule.severity)
                 self.errors.append((rule_severity, message or f"Нарушено правило {rule_id}"))
