@@ -41,7 +41,7 @@ RE_ABSTRACT_METRICS = {
     "books": re.compile(r"(\d+)\s*(?:книг|книги|кн\.|от книг)", re.IGNORECASE),
     "illustrations": re.compile(r"(\d+)\s*(?:иллюстрац|рисунк|рис\.|фиг|фиг\.)", re.IGNORECASE),
     "tables": re.compile(r"(\d+)\s*(?:табли|таблиц|табл|табл\.)", re.IGNORECASE),
-    "sources": re.compile(r"(\d+)\s*(?:источник|использ\s+источник|ист\.|исчисл)", re.IGNORECASE),
+    "sources": re.compile(r"(\d+)\s*(?:источник|использ\s+источник|ист\.|источн|исчисл)", re.IGNORECASE),
     "appendices": re.compile(r"(\d+)\s*(?:прилож|приложен|прил\.|приложён)", re.IGNORECASE),
 }
 RE_WORD_GOAL = re.compile(r"\bцель")

@@ -35,36 +35,93 @@ def extract_volume_metrics(text: str) -> dict[str, int | None]:
 
 def find_keywords_section(paragraphs: list[str]) -> str | None:
     """
-    Ищет секцию ключевых слов в реферате.
+    Ищет БЛОК ключевых слов (может быть несколько строк).
     
-    Ключевые слова обычно идут отдельным абзацем после информации об объеме.
-    Они написаны капсом, через запятые, без точки в конце.
+    Критерии:
+    - Строки преимущественно капсом (>=80% букв в верхнем регистре)
+    - Это не якорь/нумерация (не начинается с "1.1 ", "1.2 " и т.д.)
+    - Для ОДНОСТРОЧНОГО: обязательно хотя бы одна запятая
+    - Для МНОГОСТРОЧНОГО: хотя бы в одной строке запятая + большинство строк(>=50%) с запятыми
     """
-    for i, para in enumerate(paragraphs):
-        # Ищем строку почти целиком капсом, содержащую запятые
-        stripped = para.strip()
+    import re
+    
+    if not paragraphs:
+        return None
+    
+    keywords_lines = []
+    
+    for line in paragraphs:
+        stripped = line.strip()
+        
+        # Пропускаем пустые строки
         if not stripped:
             continue
         
-        # Ключевые слова: почти все капсом, много запятых
-        uppercase_count = sum(1 for c in stripped if c.isupper())
-        letter_count = sum(1 for c in stripped if c.isalpha())
-        comma_count = stripped.count(',')
+        # Проверяем буквы / капс
+        letters = [c for c in stripped if c.isalpha()]
+        if not letters:
+            continue
         
-        # Если >70% текста капсом, есть запятые и текст разумной длины
-        if letter_count > 0 and (uppercase_count / letter_count) > 0.7 and comma_count >= 2:
-            # Проверяем что это не название или нумерация
-            if not RE_NUMBERED_PREFIX_GENERIC.match(stripped):
-                return stripped
+        uppercase_letters = [c for c in letters if c.isupper()]
+        uppercase_ratio = len(uppercase_letters) / len(letters)
+        # На этапе извлечения используем мягкий порог.
+        # Строгая 100% проверка остается в check_keywords_format().
+        is_caps_like = uppercase_ratio >= 0.8
+        
+        # Якорь/нумерация - пропускаем начало блока
+        if not keywords_lines and re.match(r'^\d+\.\d*', stripped):  # "1.1 ", "1.2 " и т.д.
+            continue
+        
+        # До старта блока используем более строгий порог (>=80%).
+        if not keywords_lines:
+            if is_caps_like:
+                keywords_lines.append(stripped)
+            continue
+
+        # После старта блока собираем его целиком мягче,
+        # чтобы format_check мог валидировать весь фрагмент.
+        # В блок включаем строки с запятыми или с заметной долей капса.
+        keep_in_block = (',' in stripped) or (uppercase_ratio >= 0.5)
+        if keep_in_block:
+            keywords_lines.append(stripped)
+        else:
+            break
     
-    return None
+    if not keywords_lines:
+        return None
+    
+    # Проверяем что это действительно ключевые слова по запятам
+    comma_count_lines = sum(1 for line in keywords_lines if ',' in line)
+    total_commas = sum(line.count(',') for line in keywords_lines)
+    total_lines = len(keywords_lines)
+    
+    if total_lines == 1:
+        # Однострочный блок: хотя бы одна запятая
+        if ',' not in keywords_lines[0]:
+            return None
+    else:
+        # Многострочный блок: 
+        # - хотя бы одна запятая в блоке
+        # - хотя бы 50% строк с запятыми
+        if total_commas == 0:
+            return None
+        
+        comma_ratio = comma_count_lines / total_lines
+        if comma_ratio < 0.5:
+            return None
+    
+    return '\n'.join(keywords_lines)
 
 
-def check_keywords_format(keywords_text: str) -> dict[str, bool]:
+def check_keywords_format(keywords_block: str) -> dict[str, bool]:
     """
-    Проверяет формат ключевых слов по требованиям ГОСТ.
+    Проверяет формат ключевых слов (блок может быть многострочным).
     
-    Возвращает словарь с результатами проверок.
+    Требования ГОСТ:
+    1. is_uppercase: все буквы в каждой строке прописные (капс)
+    2. has_commas: большинство строк содержат запятые как разделители
+    3. no_trailing_period: последняя строка не заканчивается точкой
+    4. no_line_breaks: не более 4 строк и без признаков переноса слова
     """
     results = {
         "is_uppercase": True,
@@ -73,24 +130,52 @@ def check_keywords_format(keywords_text: str) -> dict[str, bool]:
         "no_line_breaks": True
     }
     
-    if not keywords_text:
+    if not keywords_block:
         return {k: False for k in results.keys()}
     
-    # 1. Проверка что капсом
-    # Исключаем цифры и спецсимволы, смотрим только буквы
-    letters = [c for c in keywords_text if c.isalpha()]
-    if letters:
-        uppercase_letters = [c for c in letters if c.isupper()]
-        results["is_uppercase"] = len(uppercase_letters) / len(letters) > 0.8
+    # Разбиваем блок на строки
+    lines = keywords_block.split('\n') if '\n' in keywords_block else [keywords_block]
     
-    # 2. Проверка запятых (разделение)
-    results["has_commas"] = ',' in keywords_text
+    # 1. Проверка капс в каждой строке
+    for line in lines:
+        letters = [c for c in line if c.isalpha()]
+        if letters:
+            uppercase_letters = [c for c in letters if c.isupper()]
+            if len(uppercase_letters) != len(letters):
+                # Не все буквы капс
+                results["is_uppercase"] = False
+                break
     
-    # 3. Проверка отсутствия точки в конце
-    results["no_trailing_period"] = not keywords_text.strip().endswith('.')
+    # 2. Проверка запятых (хотя бы в большинстве строк)
+    lines_with_commas = sum(1 for line in lines if ',' in line)
+    lines_total = len(lines)
+    # Нужно чтобы в большей части строк были запятые (>=50%)
+    if lines_with_commas < (lines_total / 2):
+        results["has_commas"] = False
+    else:
+        # Кроме того, нужна хотя бы одна запятая
+        if sum(line.count(',') for line in lines) == 0:
+            results["has_commas"] = False
     
-    # 4. Проверка отсутствия переносов строк
-    results["no_line_breaks"] = '\n' not in keywords_text
+    # 3. Проверка отсутствия точки в конце ПОСЛЕДНЕЙ строки
+    if lines:
+        last_line = lines[-1].rstrip()
+        if last_line.endswith('.'):
+            results["no_trailing_period"] = False
+    
+    # 4. Проверка переносов: не более 4 строк и без дефиса/тире в конце строки.
+    # Внутрисловные дефисы (например, "организации-соисполнителя") допускаются,
+    # т.к. запрещаем только символ переноса в конце строки.
+    hyphen_like_endings = ("-", "–", "—", "‑")
+    for line in lines:
+        if line.rstrip().endswith(hyphen_like_endings):
+            results["no_line_breaks"] = False
+            break
+
+    if '\n\n' in keywords_block:
+        results["no_line_breaks"] = False
+    if len(lines) > 4:
+        results["no_line_breaks"] = False
     
     return results
 
@@ -123,14 +208,25 @@ def find_text_keywords_in_abstract(text: str) -> dict[str, bool]:
 
 def check_volume_info(lines: list[str]) -> tuple[list[str], bool]:
     """Возвращает найденные метрики и флаг некорректного формата разделителей."""
-    first_part = '\n'.join(lines[:5])
-    metrics = extract_volume_metrics(first_part)
-
     required_metrics = ["pages", "books", "illustrations", "tables", "sources"]
+    first_lines = lines[:5]
+
+    # Формируем блок по строкам, где реально встречаются метрики объема.
+    metric_lines = [
+        line for line in first_lines
+        if any(RE_ABSTRACT_METRICS[key].search(line) for key in required_metrics)
+    ]
+    volume_block = " ".join(metric_lines) if metric_lines else "\n".join(first_lines)
+
+    metrics = extract_volume_metrics(volume_block)
     found_metrics = [k for k, v in metrics.items() if v is not None and k in required_metrics]
 
-    volume_line = first_part.strip()
-    return found_metrics, bool(found_metrics and ',' not in volume_line)
+    # Для n найденных метрик ожидаем минимум (n-1) запятых как разделители между ними.
+    expected_min_commas = max(0, len(found_metrics) - 1)
+    actual_commas = volume_block.count(",")
+    has_invalid_separator = len(found_metrics) >= 2 and actual_commas < expected_min_commas
+
+    return found_metrics, has_invalid_separator
 
 
 def check_keywords(lines: list[str]) -> tuple[str | None, dict[str, bool] | None]:

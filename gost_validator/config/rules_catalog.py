@@ -30,6 +30,18 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
         RuleResult("EXEC-005", "СПИСОК_ИСПОЛНИТЕЛЕЙ", "Список испольниетлей 1 можно разместить на титульнике", Severity.RECOMMENDATION.value),
         RuleResult("EXEC-006", "СПИСОК_ИСПОЛНИТЕЛЕЙ", "Есть \"Отв. исполнитель\"", Severity.RECOMMENDATION.value),
     ],
+    "AbstractValidator": [
+        RuleResult("ABSTRACT-001", "РЕФЕРАТ", "Раздел РЕФЕРАТ найден", Severity.CRITICAL.value),
+        RuleResult("ABSTRACT-002", "РЕФЕРАТ", "Найдены метрики объема (страницы/книги/рис/табл/источники), минимум 3", Severity.CRITICAL.value),
+        RuleResult("ABSTRACT-003", "РЕФЕРАТ", "Метрики разделены запятыми", Severity.CRITICAL.value),
+        RuleResult("ABSTRACT-004", "РЕФЕРАТ", "Ключевые слова найдены", Severity.RECOMMENDATION.value),
+        RuleResult("ABSTRACT-005", "РЕФЕРАТ", "Ключевые слова капсом", Severity.RECOMMENDATION.value),
+        RuleResult("ABSTRACT-006", "РЕФЕРАТ", "Ключевые слова через запятые", Severity.RECOMMENDATION.value),
+        RuleResult("ABSTRACT-007", "РЕФЕРАТ", "Ключевые слова без точки в конце", Severity.CRITICAL.value),
+        RuleResult("ABSTRACT-008", "РЕФЕРАТ", "Ключевые слова без переносов", Severity.RECOMMENDATION.value),
+        RuleResult("ABSTRACT-009", "РЕФЕРАТ", "В тексте есть цель/объект/рекомендации", Severity.RECOMMENDATION.value),
+        RuleResult("ABSTRACT-010", "РЕФЕРАТ", "Объем реферата >= порога", Severity.RECOMMENDATION.value),
+    ],
 }
 
 
