@@ -1,6 +1,7 @@
 """Парсер DOCX: извлекает титульник и находит секции документа."""
 
 import os
+import re
 from docx import Document
 from docx.oxml.table import CT_Tbl
 from docx.oxml.text.paragraph import CT_P
@@ -25,6 +26,17 @@ from ..models.document_structure import DocumentStructure
 class DocumentParser:
     # Ключевые секции по ГОСТ 7.32
     SECTION_KEYWORDS = PARSER_SECTION_KEYWORDS
+    TITLE_END_PRIORITY = (
+        "СПИСОК ИСПОЛНИТЕЛЕЙ",
+        "РЕФЕРАТ",
+        "СОДЕРЖАНИЕ",
+        "ТЕРМИНЫ И ОПРЕДЕЛЕНИЯ",
+        "ПЕРЕЧЕНЬ СОКРАЩЕНИЙ И ОБОЗНАЧЕНИЙ",
+        "ВВЕДЕНИЕ",
+        "ЗАКЛЮЧЕНИЕ",
+        "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ",
+        "ПРИЛОЖЕНИЕ",
+    )
     
     def parse(self, file_path: str) -> DocumentStructure:
         if not os.path.exists(file_path):
@@ -37,8 +49,8 @@ class DocumentParser:
         # Собираем весь текст документа в порядке следования блоков (абзацы + строки таблиц).
         all_paragraphs = self._extract_text_blocks(doc)
         
-        # Титульник = первые ~30 абзацев
-        title_page_text = "\n".join(all_paragraphs[:30])
+        # Титульник = от начала документа до приоритетного секционного маркера.
+        title_page_text = self._build_title_page_text(all_paragraphs)
         
         # Ищем секции документа
         sections = self._find_sections(all_paragraphs)
@@ -49,6 +61,36 @@ class DocumentParser:
             sections=sections,
             all_paragraphs=all_paragraphs
         )
+
+    def _build_title_page_text(self, paragraphs: list[str]) -> str:
+        """Возвращает текст титульника по приоритетной границе секций.
+
+        Граница ищется в порядке:
+        1) СПИСОК ИСПОЛНИТЕЛЕЙ
+        2) РЕФЕРАТ
+        3) затем прочие ключевые секции в фиксированном порядке.
+        Если маркер не найден, используем fallback на первые 30 абзацев.
+        """
+        if not paragraphs:
+            return ""
+
+        end_index = self._find_title_end_index(paragraphs)
+        if end_index is None:
+            end_index = min(30, len(paragraphs))
+
+        return "\n".join(paragraphs[:end_index])
+
+    def _find_title_end_index(self, paragraphs: list[str]) -> int | None:
+        """Ищет индекс (exclusive), на котором заканчивается титульник."""
+        normalized = [re.sub(r"\s+", " ", line.strip().upper()) for line in paragraphs]
+
+        for marker in self.TITLE_END_PRIORITY:
+            marker_upper = re.sub(r"\s+", " ", marker.upper())
+            for idx, line in enumerate(normalized):
+                if marker_upper in line:
+                    return idx
+
+        return None
 
     def _extract_text_blocks(self, doc: Document) -> list[str]:
         """Извлекает текстовые блоки документа (абзацы и таблицы) в исходном порядке."""
