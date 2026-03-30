@@ -22,6 +22,14 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
         RuleResult("TITLE-012", "ТИТУЛЬНЫЙ_ЛИСТ", "Год <= текущего", Severity.CRITICAL.value),
         RuleResult("TITLE-013", "ТИТУЛЬНЫЙ_ЛИСТ", "Найдено место составления", Severity.RECOMMENDATION.value),
     ],
+    "ExecutorListValidator": [
+        RuleResult("EXEC-001", "СПИСОК_ИСПОЛНИТЕЛЕЙ", "Есть секция \"СПИСОК ИСПОЛНИТЕЛЕЙ\" или исполнитель на титуле", Severity.CRITICAL.value),
+        RuleResult("EXEC-002", "СПИСОК_ИСПОЛНИТЕЛЕЙ", "Испольнитель на титульнике с инициалами", Severity.RECOMMENDATION.value),
+        RuleResult("EXEC-003", "СПИСОК_ИСПОЛНИТЕЛЕЙ", "В секции есть роль \"Исполнители\"", Severity.CRITICAL.value),
+        RuleResult("EXEC-004", "СПИСОК_ИСПОЛНИТЕЛЕЙ", "Найдены инициалы в формате А.В.", Severity.CRITICAL.value),
+        RuleResult("EXEC-005", "СПИСОК_ИСПОЛНИТЕЛЕЙ", "Список испольниетлей 1 можно разместить на титульнике", Severity.RECOMMENDATION.value),
+        RuleResult("EXEC-006", "СПИСОК_ИСПОЛНИТЕЛЕЙ", "Есть \"Отв. исполнитель\"", Severity.RECOMMENDATION.value),
+    ],
 }
 
 
@@ -34,7 +42,7 @@ def build_default_rule_results(validator_name: str) -> list[RuleResult]:
             section=rule.section,
             description=rule.description,
             severity=rule.severity,
-            status="OK",
+            status="SKIP",
             message=None,
             gost_ref="0",
             implemented=rule.implemented,

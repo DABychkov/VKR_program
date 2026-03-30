@@ -1,6 +1,7 @@
 """Вспомогательные функции для работы с титульным листом."""
 
 from datetime import datetime
+import re
 
 from ..config.regex_patterns import RE_INITIALS, RE_YEAR_1900_2099
 from .common.regex_utils import extract_int_by_pattern, find_last_int_by_pattern
@@ -15,25 +16,93 @@ def find_organization_block(paragraphs: list[str], start_idx: int = 0, end_idx: 
     Блок должен быть в верхних строках (0-15) и состоять из текста капсом.
     Пропускаем начальные не-капс строки (министерство может быть не капсом).
     """
-    org_block = []
-    found_caps = False
-    
-    for para in paragraphs[start_idx:end_idx]:
-        # Пропускаем пустые
-        if not para.strip():
+    service_tokens = ("УДК", "РЕГ", "НИОКТР", "ИКРБС", "УТВЕРЖДАЮ", "СОГЛАСОВАНО", "ОТЧЕТ")
+
+    def _is_caps_line(text: str) -> bool:
+        letters = [ch for ch in text if ch.isalpha()]
+        return len(letters) > 1 and all(ch.upper() == ch for ch in letters)
+
+    def _extract_caps_in_quotes(text: str) -> str | None:
+        # Ищем фрагмент в кавычках, где все буквы прописные
+        for chunk in re.findall(r'["«]([^"»]+)["»]', text):
+            letters = [ch for ch in chunk if ch.isalpha()]
+            if letters and all(ch.upper() == ch for ch in letters):
+                return chunk.strip()
+        return None
+
+    def _has_caps_in_parentheses(text: str) -> bool:
+        for chunk in re.findall(r"\(([^)]*)\)", text):
+            letters = [ch for ch in chunk if ch.isalpha()]
+            if letters and all(ch.upper() == ch for ch in letters):
+                return True
+        return False
+
+    window = paragraphs[start_idx:end_idx]
+    org_block: list[str] = []
+    block_end: int | None = None
+    quoted_anchor = False
+
+    # 1) Первый организационный якорь
+    for i, para in enumerate(window):
+        text = para.strip()
+        if not text:
             continue
-        
-        # Если капсом
-        if para.strip().isupper():
-            org_block.append(para.strip())
-            found_caps = True
-        else:
-            # Если уже нашли капс-блок, то не-капс означает конец блока
-            if found_caps:
+
+        text_upper = text.upper()
+        if any(token in text_upper for token in service_tokens):
+            continue
+
+        # Вариант A: первая капс-строка -> собираем подряд идущий капс-блок
+        if _is_caps_line(text) and not text.startswith(("(", '"', "«")):
+            org_block = [text]
+            block_end = i
+            j = i + 1
+            while j < len(window):
+                nxt = window[j].strip()
+                if not nxt:
+                    j += 1
+                    continue
+                nxt_upper = nxt.upper()
+                if any(token in nxt_upper for token in service_tokens):
+                    break
+                if _is_caps_line(nxt) and not nxt.startswith(("(", '"', "«")):
+                    org_block.append(nxt)
+                    block_end = j
+                    j += 1
+                    continue
                 break
-            # Иначе продолжаем искать (может быть министерство не капсом вначале)
-    
-    return org_block
+            break
+
+        # Вариант B: строка с капсом в кавычках (например: ... "РИННОТЕХ")
+        quoted = _extract_caps_in_quotes(text)
+        if quoted:
+            org_block = [quoted]
+            block_end = i
+            quoted_anchor = True
+            break
+
+    if not org_block or block_end is None:
+        return []
+
+    # 2) Следующий непустой элемент после блока
+    next_non_empty: str | None = None
+    for para in window[block_end + 1:]:
+        candidate = para.strip()
+        if candidate:
+            next_non_empty = candidate
+            break
+
+    # Если якорь был из кавычек, а следующего элемента нет, считаем валидным
+    if next_non_empty is None:
+        return org_block if quoted_anchor else []
+
+    starts = next_non_empty.lstrip()
+    if starts.startswith(('"', "«")):
+        return org_block
+    if starts.startswith("(") and _has_caps_in_parentheses(starts):
+        return org_block
+    return []
+
 
 
 def find_metadata_block(paragraphs: list[str]) -> dict[str, str]:
@@ -79,12 +148,27 @@ def find_document_type(paragraphs: list[str]) -> str | None:
     
     Должно быть капсом, две строки: "ОТЧЕТ" и "О НАУЧНО-ИССЛЕДОВАТЕЛЬСКОЙ РАБОТЕ".
     """
+    def _normalize(text: str) -> str:
+        normalized = text.upper().replace("Ё", "Е")
+        normalized = normalized.replace("–", "-").replace("—", "-")
+        normalized = re.sub(r"\s+", " ", normalized).strip()
+        return normalized
+
+    expected_full = "ОТЧЕТ О НАУЧНО-ИССЛЕДОВАТЕЛЬСКОЙ РАБОТЕ"
+
     for i, para in enumerate(paragraphs[:30]):
-        para_upper = para.upper()
-        if "ОТЧЕТ" in para_upper and i + 1 < len(paragraphs):
+        first_line = _normalize(para)
+
+        # Однострочный вариант.
+        if first_line == expected_full:
+            return para.strip()
+
+        # Двухстрочный вариант с любым местом переноса внутри полной фразы.
+        if i + 1 < len(paragraphs):
             next_para = paragraphs[i + 1]
-            next_para_upper = next_para.upper()
-            if "НАУЧНО-ИССЛЕДОВАТЕЛЬСКОЙ" in next_para_upper:
+            second_line = _normalize(next_para)
+            combined = f"{first_line} {second_line}".strip()
+            if combined == expected_full:
                 return f"{para.strip()}\n{next_para.strip()}"
     return None
 
@@ -132,7 +216,7 @@ def check_organization(paragraphs: list[str]) -> tuple[list[str], bool]:
         return [], False
 
     org_text = ' '.join(org_block).upper()
-    keywords = ["МИНИСТЕРСТВО", "ФЕДЕРАЛЬНОЕ", "АГЕНТСТВО", "УНИВЕРСИТЕТ"]
+    keywords = ["МИНИСТЕРСТВО", "ФЕДЕРАЛЬНОЕ", "АГЕНТСТВО", "УНИВЕРСИТЕТ", "ИНСТИТУТ", "НАУЧНО-ИССЛЕДОВАТЕЛЬСКИЙ", "КОНЦЕРН", "КОМПАНИЯ", "ОРГАНИЗАЦИЯ"]
     has_keywords = text_contains_any(org_text, keywords, case_sensitive=True)
     return org_block, has_keywords
 
@@ -175,8 +259,20 @@ def check_document_type(paragraphs: list[str]) -> tuple[str | None, bool, bool]:
     if not doc_type:
         return None, False, False
 
+    def _normalize(text: str) -> str:
+        normalized = text.upper().replace("Ё", "Е")
+        normalized = normalized.replace("–", "-").replace("—", "-")
+        normalized = re.sub(r"\s+", " ", normalized).strip()
+        return normalized
+
     lines = doc_type.split('\n')
-    has_two_lines = len(lines) == 2
+    has_two_lines = False
+    if len(lines) == 2:
+        has_two_lines = (
+            _normalize(lines[0]) == "ОТЧЕТ"
+            and _normalize(lines[1]) == "О НАУЧНО-ИССЛЕДОВАТЕЛЬСКОЙ РАБОТЕ"
+        )
+
     is_uppercase = all(is_uppercase_text(line) for line in lines)
     return doc_type, has_two_lines, is_uppercase
 

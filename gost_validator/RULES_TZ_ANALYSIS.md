@@ -69,7 +69,7 @@ if char_count < min_abstract_size: add_error(...)
 - EXEC-002: испольнитель на титульнике с инициалами (RECOMMENDATION)
 - EXEC-003: в секции есть роль "Исполнители" (CRITICAL)
 - EXEC-004: найдены инициалы в формате А.В. (CRITICAL)
-- EXEC-005: список испольниетлей <=2 можно разместить на титульнике (RECOMMENDATION)
+- EXEC-005: список испольниетлей 1 можно разместить на титульнике (RECOMMENDATION)
 - EXEC-006: есть "Отв. исполнитель" (RECOMMENDATION)
 
 ### ABSTRACT
