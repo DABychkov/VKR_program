@@ -128,31 +128,29 @@ class DocumentParser:
                     parts = [t.text for t in p.findall(f".//{{{w_ns}}}t") if t.text]
                     text = "".join(parts).strip()
                     if text:
-                        # Нормализуем auto-TOC с сохранением реального типа разделителя из XML:
-                        # dot-leader / tab / none. Это важно для CONTENTS-008.
+                        # Для авто-TOC восстанавливаем разделитель только по фактическим XML-маркерам.
+                        # Иначе Word-строки вида "ТЕРМИНЫ И ОПРЕДЕЛЕНИЯ5" ложно валят CONTENTS-008,
+                        # хотя визуальный разделитель в документе есть (tab + dot leader).
                         m = re.match(r"^(?P<title>.+?)\s*(?P<page>[+-]?\d+)\s*$", text)
                         if m:
                             title = m.group("title").strip()
                             page = m.group("page").strip()
 
-                            has_tab_node = bool(p.findall(f".//{{{w_ns}}}tab"))
+                            # Важно: учитываем только фактическую табуляцию в тексте (w:r/w:tab),
+                            # а не tab-stop в свойствах абзаца (w:tabs/w:tab).
+                            has_tab_node = bool(p.findall(f".//{{{w_ns}}}r/{{{w_ns}}}tab"))
                             tab_stops = p.findall(f".//{{{w_ns}}}tabs/{{{w_ns}}}tab")
                             has_dot_leader = any(
                                 (ts.attrib.get(f"{{{w_ns}}}leader", "").lower() == "dot")
                                 for ts in tab_stops
                             )
 
-                            # Визуальный разделитель считаем только если в строке есть
-                            # фактический tab-узел. Наличие одного лишь tab-stop в pPr
-                            # (leader=dot) без tab в тексте не должно маскировать ошибку.
-                            if has_dot_leader and has_tab_node:
+                            if has_tab_node and has_dot_leader:
                                 blocks.append(f"{title} .... {page}")
                             elif has_tab_node:
                                 blocks.append(f"{title}\t{page}")
                             else:
-                                # Без явного разделителя оставляем минимальный формат,
-                                # чтобы CONTENTS-008 мог зафейлиться.
-                                blocks.append(f"{title} {page}")
+                                blocks.append(text)
                         else:
                             blocks.append(text)
 
