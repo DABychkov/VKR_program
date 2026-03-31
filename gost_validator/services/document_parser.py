@@ -95,6 +95,7 @@ class DocumentParser:
     def _extract_text_blocks(self, doc: Document) -> list[str]:
         """Извлекает текстовые блоки документа (абзацы и таблицы) в исходном порядке."""
         blocks: list[str] = []
+        w_ns = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
         for child in doc.element.body.iterchildren():
             if isinstance(child, CT_P):
@@ -112,6 +113,48 @@ class DocumentParser:
                         continue
                     # Храним строку таблицы как TSV-подобную запись для последующего парсинга.
                     blocks.append("\t".join(cells))
+                continue
+
+            # Авто-оглавление Word часто хранится в content control (w:sdt),
+            # а не как обычные параграфы body. Подхватываем такие строки отдельно.
+            if str(child.tag).endswith("}sdt"):
+                instr_nodes = child.findall(f".//{{{w_ns}}}instrText")
+                instr_payload = " ".join((n.text or "") for n in instr_nodes).upper()
+                is_toc_sdt = ("TOC" in instr_payload) or ("PAGEREF" in instr_payload)
+                if not is_toc_sdt:
+                    continue
+
+                for p in child.findall(f".//{{{w_ns}}}p"):
+                    parts = [t.text for t in p.findall(f".//{{{w_ns}}}t") if t.text]
+                    text = "".join(parts).strip()
+                    if text:
+                        # Нормализуем auto-TOC с сохранением реального типа разделителя из XML:
+                        # dot-leader / tab / none. Это важно для CONTENTS-008.
+                        m = re.match(r"^(?P<title>.+?)\s*(?P<page>[+-]?\d+)\s*$", text)
+                        if m:
+                            title = m.group("title").strip()
+                            page = m.group("page").strip()
+
+                            has_tab_node = bool(p.findall(f".//{{{w_ns}}}tab"))
+                            tab_stops = p.findall(f".//{{{w_ns}}}tabs/{{{w_ns}}}tab")
+                            has_dot_leader = any(
+                                (ts.attrib.get(f"{{{w_ns}}}leader", "").lower() == "dot")
+                                for ts in tab_stops
+                            )
+
+                            # Визуальный разделитель считаем только если в строке есть
+                            # фактический tab-узел. Наличие одного лишь tab-stop в pPr
+                            # (leader=dot) без tab в тексте не должно маскировать ошибку.
+                            if has_dot_leader and has_tab_node:
+                                blocks.append(f"{title} .... {page}")
+                            elif has_tab_node:
+                                blocks.append(f"{title}\t{page}")
+                            else:
+                                # Без явного разделителя оставляем минимальный формат,
+                                # чтобы CONTENTS-008 мог зафейлиться.
+                                blocks.append(f"{title} {page}")
+                        else:
+                            blocks.append(text)
 
         return blocks
     

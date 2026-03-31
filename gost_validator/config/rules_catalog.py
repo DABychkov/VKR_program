@@ -42,6 +42,16 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
         RuleResult("ABSTRACT-009", "РЕФЕРАТ", "В тексте есть цель/объект/рекомендации", Severity.RECOMMENDATION.value),
         RuleResult("ABSTRACT-010", "РЕФЕРАТ", "Объем реферата >= порога", Severity.RECOMMENDATION.value),
     ],
+    "ContentsValidator": [
+        RuleResult("CONTENTS-001", "СОДЕРЖАНИЕ", "Раздел СОДЕРЖАНИЕ найден", Severity.RECOMMENDATION.value),
+        RuleResult("CONTENTS-002", "СОДЕРЖАНИЕ", "Раздел СОДЕРЖАНИЕ не пустой", Severity.CRITICAL.value),
+        RuleResult("CONTENTS-003", "СОДЕРЖАНИЕ", "Строки содержания распознаны с номерами страниц", Severity.CRITICAL.value),
+        RuleResult("CONTENTS-004", "СОДЕРЖАНИЕ", "Есть обязательные пункты НИР", Severity.CRITICAL.value),
+        RuleResult("CONTENTS-005", "СОДЕРЖАНИЕ", "Порядок страниц ВВЕДЕНИЕ < ЗАКЛЮЧЕНИЕ", Severity.RECOMMENDATION.value),
+        RuleResult("CONTENTS-006", "СОДЕРЖАНИЕ", "Порядок страниц ЗАКЛЮЧЕНИЕ < ИСТОЧНИКИ", Severity.RECOMMENDATION.value),
+        RuleResult("CONTENTS-007", "СОДЕРЖАНИЕ", "Номера страниц > 0", Severity.CRITICAL.value),
+        RuleResult("CONTENTS-008", "СОДЕРЖАНИЕ", "Есть визуальный разделитель (точки/таб/широкий пробел)", Severity.RECOMMENDATION.value),
+    ],
 }
 
 

@@ -201,6 +201,19 @@ class FooterFeature:
 
 
 @dataclass
+class TocEntryFeature:
+    """Элемент встроенного оглавления Word (field TOC/PAGEREF)."""
+
+    paragraph_index: int | None = None  # индекс p внутри body, если удалось определить
+    raw_text: str = ""  # исходный текст строки оглавления
+    title: str | None = None  # название пункта без номера страницы
+    page: int | None = None  # номер страницы
+    has_toc_field: bool = False  # содержит ли строка поле TOC/PAGEREF
+    has_hyperlink: bool = False  # есть ли hyperlink-якорь
+    parse_ok: bool = False  # успешно ли выделены title/page
+
+
+@dataclass
 class RichDocumentStructure:
     """Нормализованные признаки для строгих проверок оформления."""
 
@@ -218,3 +231,4 @@ class RichDocumentStructure:
     links_features: list[LinkFeature] = field(default_factory=list)  # ссылки на источники, таблицы, рисунки
     notes_features: list[NoteFeature] = field(default_factory=list)  # примечания
     footnote_features: list[FootnoteFeature] = field(default_factory=list)  # сноски
+    toc_entries: list[TocEntryFeature] = field(default_factory=list)  # встроенное оглавление Word

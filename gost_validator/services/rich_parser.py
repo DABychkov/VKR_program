@@ -10,6 +10,7 @@ from docx import Document
 
 from ..models.rich_document_structure import RichDocumentStructure
 from .extractors import (
+    extract_toc_entries,
     extract_footnote_features,
     extract_figure_caption_features,
     extract_footer_features,
@@ -49,6 +50,7 @@ class RichParser:
         )
         notes_features = extract_notes_features(doc)
         footnote_features = extract_footnote_features(doc)
+        toc_entries = extract_toc_entries(doc)
 
         # TODO: language_hint, sections_detected.
         return RichDocumentStructure(
@@ -62,4 +64,5 @@ class RichParser:
             links_features=links_features,
             notes_features=notes_features,
             footnote_features=footnote_features,
+            toc_entries=toc_entries,
         )

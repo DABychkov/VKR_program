@@ -38,6 +38,7 @@ def print_rich_summary(file_path: str) -> None:
     print(f"Ссылок: {len(rich_doc.links_features)}")
     print(f"Примечаний: {len(rich_doc.notes_features)}")
     print(f"Сносок: {len(rich_doc.footnote_features)}")
+    print(f"TOC entries (Word auto): {len(rich_doc.toc_entries)}")
 
 
 def print_rule_results_table(validator_name: str, results) -> None:
@@ -81,6 +82,7 @@ def debug_rich_document(file_path: str) -> None:
     print(f"Ссылок: {len(rich_doc.links_features)}")
     print(f"Примечаний: {len(rich_doc.notes_features)}")
     print(f"Сносок: {len(rich_doc.footnote_features)}")
+    print(f"TOC entries (Word auto): {len(rich_doc.toc_entries)}")
 
     print("\nПараметры страниц по секциям:")
     for section in rich_doc.pages_settings:
@@ -219,6 +221,22 @@ def debug_rich_document(file_path: str) -> None:
             f"sep_line={footnote.has_separator_line} "
             f"sep_short_left={footnote.separator_short_left_heuristic}"
         )
+
+    print("\nВстроенное оглавление Word:")
+    if not rich_doc.toc_entries:
+        print("  не найдены")
+    else:
+        for idx, entry in enumerate(rich_doc.toc_entries, start=1):
+            print(
+                "  "
+                f"#{idx} p={entry.paragraph_index} "
+                f"parse_ok={entry.parse_ok} "
+                f"toc_field={entry.has_toc_field} "
+                f"hyperlink={entry.has_hyperlink} "
+                f"title={repr(entry.title)} "
+                f"page={entry.page} "
+                f"raw={repr(entry.raw_text)}"
+            )
 
 
 def validate_document(file_path: str) -> None:

@@ -10,6 +10,7 @@ from .caption_link_extractor import (
     resolve_non_source_links,
 )
 from .notes_footnotes_extractor import extract_footnote_features, extract_notes_features
+from .toc_extractor import extract_toc_entries
 
 __all__ = [
     "extract_paragraph_features",
@@ -22,4 +23,5 @@ __all__ = [
     "resolve_non_source_links",
     "extract_notes_features",
     "extract_footnote_features",
+    "extract_toc_entries",
 ]

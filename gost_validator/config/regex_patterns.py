@@ -19,9 +19,9 @@ RE_NUMBERED_PREFIX_GENERIC = re.compile(r"^\d+\.?\s+")
 
 # Оглавление/страницы
 RE_TOC_ITEM_WITH_PAGE = re.compile(
-    r"^(?P<title>.+?)\s*(?:\.{2,}\s*)?(?P<page>\d+)\s*$"
+    r"^(?P<title>.+?)\s*(?:(?:[.\u2026]{2,})|\t+|\s{2,})?\s*(?P<page>[+-]?\d+)\s*$"
 )
-RE_DOT_LEADER = re.compile(r"\.{2,}")
+RE_DOT_LEADER = re.compile(r"(?:\.{2,}|\u2026{2,})")
 RE_WIDE_SPACE_PAGE_SUFFIX = re.compile(r"\s{2,}\d+\s*$")
 RE_LINE_ENDS_WITH_DIGITS = re.compile(r"\d+\s*$")
 RE_NON_DIGIT_BEFORE_PAGE = re.compile(r"\D\s*\d+\s*$")
