@@ -3,7 +3,6 @@
 from typing import Optional
 
 from ..config.regex_patterns import (
-    RE_DEFINITION_ITEM_COLON,
     RE_DEFINITION_ITEM_DASH,
     RE_LEFT_INDENTATION,
 )
@@ -24,7 +23,6 @@ def split_definition_item(line: str) -> Optional[tuple[str, str]]:
     - "TERM – definition"
     - "TERM - definition"
     - "TERM\tdefinition" (Word-табуляция)
-    - "TERM: definition" (мягкий fallback)
     """
     raw = line.strip()
     if not raw:
@@ -44,14 +42,6 @@ def split_definition_item(line: str) -> Optional[tuple[str, str]]:
     if dash_match:
         left = dash_match.group("left").strip()
         right = dash_match.group("right").strip()
-        if left and right:
-            return left, right
-
-    # Приоритет 3: двоеточие (на случай локальных шаблонов)
-    colon_match = RE_DEFINITION_ITEM_COLON.match(raw)
-    if colon_match:
-        left = colon_match.group("left").strip()
-        right = colon_match.group("right").strip()
         if left and right:
             return left, right
 

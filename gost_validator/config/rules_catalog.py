@@ -52,6 +52,14 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
         RuleResult("CONTENTS-007", "СОДЕРЖАНИЕ", "Номера страниц > 0", Severity.CRITICAL.value),
         RuleResult("CONTENTS-008", "СОДЕРЖАНИЕ", "Есть визуальный разделитель (точки/таб/широкий пробел)", Severity.RECOMMENDATION.value),
     ],
+    "TermsValidator": [
+        RuleResult("TERMS-001", "ТЕРМИНЫ_И_ОПРЕДЕЛЕНИЯ", "Раздел ТЕРМИНЫ И ОПРЕДЕЛЕНИЯ найден", Severity.RECOMMENDATION.value),
+        RuleResult("TERMS-002", "ТЕРМИНЫ_И_ОПРЕДЕЛЕНИЯ", "Вводная фраза близка к ГОСТ", Severity.CRITICAL.value),
+        RuleResult("TERMS-003", "ТЕРМИНЫ_И_ОПРЕДЕЛЕНИЯ", "Есть элементы ТЕРМИН — ОПРЕДЕЛЕНИЕ", Severity.CRITICAL.value),
+        RuleResult("TERMS-004", "ТЕРМИНЫ_И_ОПРЕДЕЛЕНИЯ", "Нет левого отступа у левой колонки", Severity.CRITICAL.value),
+        RuleResult("TERMS-005", "ТЕРМИНЫ_И_ОПРЕДЕЛЕНИЯ", "Термин и определение без знаков в конце", Severity.CRITICAL.value),
+        RuleResult("TERMS-006", "ТЕРМИНЫ_И_ОПРЕДЕЛЕНИЯ", "Алфавитный порядок", Severity.CRITICAL.value),
+    ],
 }
 
 

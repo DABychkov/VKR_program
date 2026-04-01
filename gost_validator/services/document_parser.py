@@ -100,15 +100,21 @@ class DocumentParser:
         for child in doc.element.body.iterchildren():
             if isinstance(child, CT_P):
                 paragraph = Paragraph(child, doc)
-                text = paragraph.text.strip()
-                if text:
-                    blocks.append(text)
+                raw_text = paragraph.text
+                if raw_text and raw_text.strip():
+                    # Сохраняем ведущие пробелы для правил, где важен левый отступ
+                    # (например, TERMS-004), но убираем хвостовые пробелы/переводы.
+                    blocks.append(raw_text.rstrip())
                 continue
 
             if isinstance(child, CT_Tbl):
                 table = Table(child, doc)
                 for row in table.rows:
-                    cells = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+                    cells = [
+                        cell.text.rstrip()
+                        for cell in row.cells
+                        if cell.text and cell.text.strip()
+                    ]
                     if not cells:
                         continue
                     # Храним строку таблицы как TSV-подобную запись для последующего парсинга.
