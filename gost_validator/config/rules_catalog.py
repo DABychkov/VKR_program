@@ -68,6 +68,14 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
         RuleResult("ABBR-005", "СОКРАЩЕНИЯ_И_ОБОЗНАЧЕНИЯ", "Алфавитный порядок", Severity.CRITICAL.value),
         RuleResult("ABBR-006", "СОКРАЩЕНИЯ_И_ОБОЗНАЧЕНИЯ", "Сокращения и расшифровки без знаков в конце", Severity.CRITICAL.value),
     ],
+    "ReferencesValidator": [
+        RuleResult("REFS-001", "СПИСОК_ИСТОЧНИКОВ", "Раздел СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ найден", Severity.CRITICAL.value),
+        RuleResult("REFS-002", "СПИСОК_ИСТОЧНИКОВ", "Раздел не пустой", Severity.CRITICAL.value),
+        RuleResult("REFS-003", "СПИСОК_ИСТОЧНИКОВ", "Первый элемент нумерованный", Severity.CRITICAL.value),
+        RuleResult("REFS-004", "СПИСОК_ИСТОЧНИКОВ", "В разделе есть нумерованные записи", Severity.CRITICAL.value),
+        RuleResult("REFS-005", "СПИСОК_ИСТОЧНИКОВ", "Последовательность нумерации", Severity.RECOMMENDATION.value),
+        RuleResult("REFS-006", "СПИСОК_ИСТОЧНИКОВ", "В записях есть инициалы", Severity.RECOMMENDATION.value),
+    ],
 }
 
 
