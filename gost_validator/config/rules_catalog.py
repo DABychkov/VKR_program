@@ -60,6 +60,14 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
         RuleResult("TERMS-005", "ТЕРМИНЫ_И_ОПРЕДЕЛЕНИЯ", "Термин и определение без знаков в конце", Severity.CRITICAL.value),
         RuleResult("TERMS-006", "ТЕРМИНЫ_И_ОПРЕДЕЛЕНИЯ", "Алфавитный порядок", Severity.CRITICAL.value),
     ],
+    "AbbreviationsValidator": [
+        RuleResult("ABBR-001", "СОКРАЩЕНИЯ_И_ОБОЗНАЧЕНИЯ", "Раздел СОКРАЩЕНИЯ И ОБОЗНАЧЕНИЯ найден или есть объединенный раздел", Severity.RECOMMENDATION.value),
+        RuleResult("ABBR-002", "СОКРАЩЕНИЯ_И_ОБОЗНАЧЕНИЯ", "Вводная фраза близка к ГОСТ", Severity.CRITICAL.value),
+        RuleResult("ABBR-003", "СОКРАЩЕНИЯ_И_ОБОЗНАЧЕНИЯ", "Есть элементы СОКРАЩЕНИЕ — РАСШИФРОВКА", Severity.CRITICAL.value),
+        RuleResult("ABBR-004", "СОКРАЩЕНИЯ_И_ОБОЗНАЧЕНИЯ", "Нет отступа у левой колонки", Severity.CRITICAL.value),
+        RuleResult("ABBR-005", "СОКРАЩЕНИЯ_И_ОБОЗНАЧЕНИЯ", "Алфавитный порядок", Severity.CRITICAL.value),
+        RuleResult("ABBR-006", "СОКРАЩЕНИЯ_И_ОБОЗНАЧЕНИЯ", "Сокращения и расшифровки без знаков в конце", Severity.CRITICAL.value),
+    ],
 }
 
 

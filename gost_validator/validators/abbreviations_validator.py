@@ -1,7 +1,7 @@
 """Валидатор раздела 1.7 "ПЕРЕЧЕНЬ СОКРАЩЕНИЙ И ОБОЗНАЧЕНИЙ"."""
 
 from ..models.document_structure import DocumentStructure
-from ..models.validation_result import Severity, ValidationResult
+from ..models.validation_result import ValidationResult
 from ..config.validation_constants import (
     ABBREVIATIONS_SECTION_KEYWORDS,
     COMBINED_DEFINITIONS_SECTION_KEYWORDS,
@@ -35,58 +35,90 @@ class AbbreviationsValidator(BaseValidator):
         # Условно-обязательный: если нету этого структурного элемента и нет объединенного раздела -> рекомендация.
         if not section_text:
             if not has_combined:
-                result.add_error(
-                    Severity.RECOMMENDATION,
+                result.add_rule(
+                    "ABBR-001",
+                    "FAIL",
                     'Раздел "ПЕРЕЧЕНЬ СОКРАЩЕНИЙ И ОБОЗНАЧЕНИЙ" не найден. '
                     'Если в документе используются сокращения/обозначения, рекомендуется добавить'
                     'или объединенный раздел "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ".',
                 )
+            else:
+                result.add_rule(
+                    "ABBR-001",
+                    "OK",
+                    'Отдельный раздел "ПЕРЕЧЕНЬ СОКРАЩЕНИЙ И ОБОЗНАЧЕНИЙ" не найден, '
+                    'но обнаружен объединенный раздел с определениями.',
+                )
             return result
+
+        result.add_rule("ABBR-001", "OK")
 
         lines = get_non_empty_lines(section_text, strip=False)
         intro = find_intro_line(lines)
-        if intro and not intro_phrase_matches(intro, self.EXPECTED_INTRO, min_common_words=8):
-            result.add_error(
-                Severity.CRITICAL,
+        if not intro:
+            result.add_rule(
+                "ABBR-002",
+                "FAIL",
+                'В разделе "ПЕРЕЧЕНЬ СОКРАЩЕНИЙ И ОБОЗНАЧЕНИЙ" не найдена вводная формулировка по ГОСТ.',
+            )
+        elif not intro_phrase_matches(intro, self.EXPECTED_INTRO, min_common_words=8):
+            result.add_rule(
+                "ABBR-002",
+                "FAIL",
                 'В разделе "ПЕРЕЧЕНЬ СОКРАЩЕНИЙ И ОБОЗНАЧЕНИЙ" отсутствует '
                 'требуемая вводная формулировка или она слишком сильно отличается от ГОСТ.',
             )
+        else:
+            result.add_rule("ABBR-002", "OK")
 
         items = extract_definition_items(section_text)
         if not items:
-            result.add_error(
-                Severity.CRITICAL,
+            result.add_rule(
+                "ABBR-003",
+                "FAIL",
                 'В разделе "ПЕРЕЧЕНЬ СОКРАЩЕНИЙ И ОБОЗНАЧЕНИЙ" не найдены строки '
                 'формата "СОКРАЩЕНИЕ — РАСШИФРОВКА".',
             )
             return result
+
+        result.add_rule("ABBR-003", "OK")
 
         abbreviations = [left for left, _, _ in items]
 
         # По ТЗ: без отступа в левой колонке.
         indented = [raw for _, _, raw in items if has_left_indentation(raw)]
         if indented:
-            result.add_error(
-                Severity.CRITICAL,
+            result.add_rule(
+                "ABBR-004",
+                "FAIL",
                 'В части строк обнаружен абзацный отступ перед сокращением. '
                 'Рекомендуется располагать сокращения без отступа.',
             )
+        else:
+            result.add_rule("ABBR-004", "OK")
 
         # По ТЗ: алфавитный порядок.
         if not is_alphabetical(abbreviations):
-            result.add_error(
-                Severity.CRITICAL,
+            result.add_rule(
+                "ABBR-005",
+                "FAIL",
                 'Сокращения не в алфавитном порядке. '
                 'Рекомендуется упорядочить список по алфавиту.',
             )
+        else:
+            result.add_rule("ABBR-005", "OK")
 
-        # По ТЗ: без знаков препинания в конце сокращения.
-        bad_trailing = [abbr for abbr in abbreviations if abbr.rstrip().endswith((".", ";", ":", ","))]
-        if bad_trailing:
-            result.add_error(
-                Severity.CRITICAL,
-                'Рекомендуется убрать пунктуацию сокращений в конце левой части статьи.',
+        # По ТЗ: без знаков препинания в конце сокращения и расшифровки.
+        bad_left = [left for left, _, _ in items if left.rstrip().endswith((".", ";", ":", ","))]
+        bad_right = [right for _, right, _ in items if right.rstrip().endswith((".", ";", ":", ","))]
+        if bad_left or bad_right:
+            result.add_rule(
+                "ABBR-006",
+                "FAIL",
+                'Рекомендуется убрать пунктуацию в конце сокращения и расшифровки.',
             )
+        else:
+            result.add_rule("ABBR-006", "OK")
 
         return result
 
