@@ -8,6 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
+from gost_validator.models.rich_document_structure import RichDocumentStructure
 from gost_validator.services.document_parser import DocumentParser
 from gost_validator.services.rich_parser import RichParser
 from gost_validator.services.validation_service import ValidationService
@@ -22,11 +23,8 @@ from gost_validator.validators.appendices_validator import AppendicesValidator
 from gost_validator.models.validation_result import Severity
 
 
-def print_rich_summary(file_path: str) -> None:
+def print_rich_summary(rich_doc: RichDocumentStructure) -> None:
     """Печатает краткую сводку rich-признаков в обычном режиме валидации."""
-    parser = RichParser()
-    rich_doc = parser.parse(file_path)
-
     print("\n" + "=" * 60)
     print("RICH SUMMARY")
     print("=" * 60)
@@ -243,9 +241,11 @@ def validate_document(file_path: str) -> None:
     """Валидирует документ по ГОСТ 7.32-2017."""
     parser = DocumentParser()
     doc = parser.parse(file_path)
+    rich_doc = RichParser().parse(file_path)
+    doc.rich_document = rich_doc
 
-    # В обычном режиме также запускаем rich-парсер и печатаем краткую сводку.
-    print_rich_summary(file_path)
+    # В обычном режиме печатаем краткую сводку rich-признаков.
+    print_rich_summary(rich_doc)
 
     # Показываем найденные секции
     print(f"\nФайл: {doc.filename}")

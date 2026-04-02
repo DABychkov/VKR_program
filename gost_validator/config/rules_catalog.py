@@ -79,6 +79,7 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
     "AppendicesValidator": [
         RuleResult("APPX-001", "ПРИЛОЖЕНИЯ", "Приложения найдены", Severity.RECOMMENDATION.value),
         RuleResult("APPX-003", "ПРИЛОЖЕНИЯ", "Обозначение приложения валидно", Severity.CRITICAL.value),
+        RuleResult("APPX-009", "ПРИЛОЖЕНИЯ", "После обозначения есть отдельная строка статуса в скобках", Severity.CRITICAL.value),
         RuleResult("APPX-004", "ПРИЛОЖЕНИЯ", "Приложение не пустое", Severity.CRITICAL.value),
         RuleResult("APPX-005", "ПРИЛОЖЕНИЯ", "После заголовка есть отдельное название", Severity.CRITICAL.value),
         RuleResult("APPX-006", "ПРИЛОЖЕНИЯ", "Заголовок приложения без точки в конце", Severity.CRITICAL.value),

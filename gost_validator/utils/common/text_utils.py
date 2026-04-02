@@ -8,6 +8,17 @@ def normalize_text(text: str) -> str:
     return " ".join(text.replace("\t", " ").split()).strip().lower()
 
 
+def normalize_text_compact_upper(text: str) -> str:
+    """Нормализует пробелы и переводит текст в верхний регистр."""
+    return " ".join(text.replace("\t", " ").split()).strip().upper()
+
+
+def is_parenthesized_text(text: str) -> bool:
+    """Проверяет, что строка целиком заключена в круглые скобки."""
+    stripped = text.strip()
+    return len(stripped) >= 2 and stripped.startswith("(") and stripped.endswith(")")
+
+
 def find_intro_line(lines: list[str], search_depth: int = 5) -> str:
     """Возвращает первую непустую строку среди первых search_depth строк."""
     for line in lines[:search_depth]:

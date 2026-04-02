@@ -12,7 +12,8 @@ from ..utils.appendices_validation_utils import (
     check_contents_mentions,
     check_designation_sequence,
     extract_label,
-    extract_title,
+    extract_status_line_with_fallback,
+    extract_title_with_rich_fallback,
     is_valid_label,
 )
 from ..utils.common.section_utils import (
@@ -52,12 +53,19 @@ class AppendicesValidator(BaseValidator):
         result.add_rule("APPX-001", "OK")
 
         contents_text = find_section_text_by_keywords(document.sections, CONTENTS_SECTION_KEYWORDS)
+        rich_doc = document.rich_document
+
         appendix_entries: list[tuple[str, str | None, str]] = []
         sequence_labels: list[str] = []
 
         for header, section_text in appendix_sections:
             label = extract_label(header, self.APPENDIX_HEADER_RE)
-            title = extract_title(header)
+            status_line = extract_status_line_with_fallback(header, section_text)
+            title, consumed_title_lines = extract_title_with_rich_fallback(
+                header,
+                section_text,
+                rich_doc,
+            )
             if not label:
                 result.add_rule(
                     "APPX-003",
@@ -78,13 +86,25 @@ class AppendicesValidator(BaseValidator):
                 result.add_rule("APPX-003", "OK")
                 sequence_labels.append(label)
                 appendix_entries.append((label, title, header))
-                
+
+            if not status_line:
+                result.add_rule(
+                    "APPX-009",
+                    "FAIL",
+                    f'После обозначения приложения "{label}" не найдена отдельная строка статуса '
+                    'в скобках (например, "(рекомендуемое)").',
+                )
+            else:
+                result.add_rule("APPX-009", "OK")
+
             lines = get_non_empty_lines(section_text, strip=True)
-            if not lines:
+            content_lines = lines[consumed_title_lines:]
+            if not content_lines:
                 result.add_rule(
                     "APPX-004",
                     "FAIL",
-                    f'Приложение "{label}" найдено, но не содержит текста и заголовка.',
+                    f'Приложение "{label}" найдено, но не содержит основного текста '
+                    'после строки статуса и названия.',
                 )
                 continue
             else:
@@ -95,7 +115,8 @@ class AppendicesValidator(BaseValidator):
                     "APPX-005",
                     "FAIL",
                     f'В заголовке приложения "{header}" не удалось определить название. '
-                    'Ожидается формат: ПРИЛОЖЕНИЕ X, строка в скобках, затем название.',
+                    'Ожидается отдельная строка названия после статуса, оформленная как центрированный '
+                    'полужирный текст.',
                 )
                 continue
             else:

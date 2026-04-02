@@ -1,8 +1,11 @@
 """Содержательные проверки для валидатора раздела "ПРИЛОЖЕНИЯ"."""
 
 from re import Pattern
+from typing import Any
 
+from .common.rich_utils import find_paragraph_index_by_text, is_center_bold
 from .common.section_utils import check_is_sequential
+from .common.text_utils import is_parenthesized_text
 
 
 def extract_label(header: str, appendix_header_re: Pattern[str]) -> str | None:
@@ -18,9 +21,153 @@ def extract_label(header: str, appendix_header_re: Pattern[str]) -> str | None:
 def extract_title(header: str) -> str | None:
     """Извлекает название приложения из заголовка."""
     lines = [line.strip() for line in header.splitlines() if line.strip()]
-    if len(lines) < 3:
+    if len(lines) < 2:
         return None
-    return lines[2]
+
+    # Якорная логика: после первой строки "ПРИЛОЖЕНИЕ X"
+    # берем первую осмысленную строку, исключая строку статуса и
+    # случайное повторение строки "ПРИЛОЖЕНИЕ ...".
+    for candidate in lines[1:]:
+        if is_parenthesized_text(candidate):
+            continue
+        if candidate.upper().startswith("ПРИЛОЖЕНИЕ"):
+            continue
+        return candidate
+
+    return None
+
+
+def _normalize_for_match(text: str) -> str:
+    return " ".join(text.split()).strip().upper()
+
+
+def extract_status_line(header: str) -> str | None:
+    """Извлекает строку статуса приложения (в скобках)."""
+    lines = [line.strip() for line in header.splitlines() if line.strip()]
+    if len(lines) < 2:
+        return None
+
+    status_line = lines[1]
+    if is_parenthesized_text(status_line):
+        return status_line
+    return None
+
+
+def extract_status_line_with_fallback(header: str, section_text: str) -> str | None:
+    """Извлекает строку статуса из header, либо из первых строк тела секции."""
+    status_line = extract_status_line(header)
+    if status_line:
+        return status_line
+
+    body_lines = [line.strip() for line in section_text.split("\n") if line.strip()]
+    if not body_lines:
+        return None
+
+    candidate = body_lines[0]
+    if is_parenthesized_text(candidate):
+        return candidate
+    return None
+
+
+def _find_header_paragraph_index(rich_doc: Any, header: str) -> int | None:
+    paragraph_features = getattr(rich_doc, "paragraph_features", [])
+
+    # Сначала пытаемся найти полный header как есть.
+    full_match_index = find_paragraph_index_by_text(paragraph_features, header)
+    if full_match_index is not None:
+        return full_match_index
+
+    # Если header многострочный (например, "ПРИЛОЖЕНИЕ А\nНазвание"),
+    # в rich-потоке это часто два отдельных абзаца. Берем первую строку-якорь.
+    header_lines = [line.strip() for line in header.splitlines() if line.strip()]
+    if not header_lines:
+        return None
+
+    return find_paragraph_index_by_text(paragraph_features, header_lines[0])
+
+
+def extract_title_with_rich_fallback(
+    header: str,
+    section_text: str,
+    rich_doc: Any | None,
+) -> tuple[str | None, int]:
+    """Извлекает название приложения и число строк section_text, занятых заголовком.
+
+    consumed_lines относится только к строкам section_text. Поэтому в rich-ветке,
+    когда заголовок найден по paragraph_features, увеличиваем consumed только на
+    строки, реально относящиеся к section_text (например, fallback-статус),
+    но не на абзацы rich-заголовка.
+    """
+    title = extract_title(header)
+    if title:
+        return title, 0
+
+    body_lines = [line.strip() for line in section_text.split("\n") if line.strip()]
+    if not body_lines:
+        return None, 0
+
+    status_consumed = 1 if is_parenthesized_text(body_lines[0]) else 0
+
+    # Если rich не подключен, используем текстовый fallback.
+    if rich_doc is None:
+        start_index = status_consumed
+        if start_index >= len(body_lines):
+            return None, status_consumed
+        candidate = body_lines[start_index]
+        if candidate.upper().startswith("ПРИЛОЖЕНИЕ"):
+            return None, status_consumed
+        return candidate, start_index + 1
+
+    header_index = _find_header_paragraph_index(rich_doc, header)
+    if header_index is None:
+        start_index = status_consumed
+        if start_index >= len(body_lines):
+            return None, status_consumed
+        candidate = body_lines[start_index]
+        if candidate.upper().startswith("ПРИЛОЖЕНИЕ"):
+            return None, status_consumed
+        return candidate, start_index + 1
+
+    title_parts: list[str] = []
+    paragraphs = getattr(rich_doc, "paragraph_features", [])
+    current_index = header_index + 1
+
+    while current_index < len(paragraphs):
+        para = paragraphs[current_index]
+        para_text = (getattr(para, "text", "") or "").strip()
+        if not para_text:
+            current_index += 1
+            continue
+
+        if is_parenthesized_text(para_text):
+            current_index += 1
+            continue
+
+        if not is_center_bold(para, allow_unknown_bold=True):
+            break
+
+        title_parts.append(para_text)
+        current_index += 1
+
+    if title_parts:
+        consumed = status_consumed
+        body_index = status_consumed
+
+        # Учитываем в consumed только те rich-строки заголовка,
+        # которые реально присутствуют в начале section_text.
+        for title_part in title_parts:
+            if body_index >= len(body_lines):
+                break
+            if _normalize_for_match(body_lines[body_index]) != _normalize_for_match(title_part):
+                break
+            consumed += 1
+            body_index += 1
+
+        return " ".join(title_parts), consumed
+
+    # Rich-контекст найден, но строк в стиле center+bold после статуса нет:
+    # считаем, что корректного заголовка приложения не обнаружено.
+    return None, status_consumed
 
 
 def is_valid_label(
