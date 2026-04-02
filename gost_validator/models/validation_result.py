@@ -51,6 +51,17 @@ class ValidationResult:
                 continue
 
             already_failed = rule.status == "FAIL"
+
+            # Если правило уже в FAIL и снова приходит FAIL,
+            # сохраняем первое сообщение и не перезаписываем состояние.
+            if normalized_status == "FAIL" and already_failed:
+                return
+
+            # Не позволяем понизить правило из FAIL обратно в OK/SKIP.
+            # Это защищает от случайных перезаписей в циклах валидаторов.
+            if already_failed and normalized_status in {"OK", "SKIP"}:
+                return
+
             rule.status = normalized_status
             rule.message = message
             rule.gost_ref = gost_ref

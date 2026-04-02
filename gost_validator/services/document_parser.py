@@ -277,10 +277,11 @@ class DocumentParser:
     def _is_appendix_header(self, text: str) -> bool:
         """Проверяет, является ли строка заголовком приложения."""
         text_strip = text.strip()
+        first_line = text_strip.splitlines()[0].strip() if text_strip else ""
         if len(text_strip) > 80:
             return False
 
-        return bool(RE_APPENDIX_HEADER.match(text_strip))
+        return bool(RE_APPENDIX_HEADER.match(first_line))
     
     def _is_main_section_start(self, text: str) -> bool:
         """Проверяет, началась ли основная часть (номер раздела)."""

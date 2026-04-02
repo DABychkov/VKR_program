@@ -7,10 +7,20 @@ from .common.section_utils import check_is_sequential
 
 def extract_label(header: str, appendix_header_re: Pattern[str]) -> str | None:
     """Извлекает обозначение приложения из заголовка."""
-    match = appendix_header_re.match(header.strip())
+    header_strip = header.strip()
+    first_line = header_strip.splitlines()[0].strip() if header_strip else ""
+    match = appendix_header_re.match(first_line)
     if not match:
         return None
     return match.group(1).upper()
+
+
+def extract_title(header: str) -> str | None:
+    """Извлекает название приложения из заголовка."""
+    lines = [line.strip() for line in header.splitlines() if line.strip()]
+    if len(lines) < 3:
+        return None
+    return lines[2]
 
 
 def is_valid_label(
@@ -35,12 +45,11 @@ def is_valid_label(
 
 
 def check_designation_sequence(
-    appendix_entries: list[tuple[str, str, str]],
+    labels: list[str],
     invalid_cyrillic_labels: set[str],
     invalid_latin_labels: set[str],
 ) -> tuple[bool, bool, bool]:
     """Проверяет последовательность обозначений приложений."""
-    labels = [label for label, _, _ in appendix_entries]
     if len(labels) < 2:
         return False, False, False
 
@@ -78,24 +87,29 @@ def check_designation_sequence(
 
 def check_contents_mentions(
     contents_text: str | None,
-    appendix_entries: list[tuple[str, str, str]],
+    appendix_entries: list[tuple[str, str | None, str]],
     appendix_keyword: str,
-) -> list[tuple[str, bool, bool]]:
+) -> list[tuple[str, bool, bool | None]]:
     """Проверяет, что приложения и их названия указаны в содержании."""
     if not contents_text:
         return []
 
-    facts: list[tuple[str, bool, bool]] = []
+    facts: list[tuple[str, bool, bool | None]] = []
 
     contents_upper = contents_text.upper()
     for label, title, _ in appendix_entries:
         appendix_marker = f"{appendix_keyword} {label}".upper()
         has_appendix_marker = appendix_marker in contents_upper
         if not has_appendix_marker:
-            facts.append((label, False, False))
+            facts.append((label, False, None))
+            continue
+
+        if not title:
+            # Название не удалось извлечь, проверяем только наличие обозначения в содержании.
+            facts.append((label, True, None))
             continue
 
         normalized_title = title.upper()
-        has_title = not normalized_title or normalized_title in contents_upper
+        has_title = normalized_title in contents_upper
         facts.append((label, True, has_title))
     return facts
