@@ -86,6 +86,15 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
         RuleResult("APPX-007", "ПРИЛОЖЕНИЯ", "Последовательность обозначений приложений", Severity.CRITICAL.value),
         RuleResult("APPX-008", "ПРИЛОЖЕНИЯ", "Приложение перечислено в содержании", Severity.CRITICAL.value),
     ],
+    "GeneralRequirementsValidator": [
+        RuleResult("GENERAL-001", "ОБЩИЕ_ТРЕБОВАНИЯ", "Поля страницы 30/15/20/20 мм", Severity.CRITICAL.value),
+        RuleResult("GENERAL-002", "ОБЩИЕ_ТРЕБОВАНИЯ", "Абзацный отступ около 1.25 см", Severity.CRITICAL.value),
+        RuleResult("GENERAL-003", "ОБЩИЕ_ТРЕБОВАНИЯ", "Межстрочный интервал соответствует профилю", Severity.CRITICAL.value),
+        RuleResult("GENERAL-004", "ОБЩИЕ_ТРЕБОВАНИЯ", "Размер шрифта не ниже минимального порога", Severity.CRITICAL.value),
+        RuleResult("GENERAL-005", "ОБЩИЕ_ТРЕБОВАНИЯ", "Доля курсива не превышает порог", Severity.RECOMMENDATION.value),
+        RuleResult("GENERAL-006", "ОБЩИЕ_ТРЕБОВАНИЯ", "Цвет шрифта преимущественно черный", Severity.CRITICAL.value),
+        RuleResult("GENERAL-007", "ОБЩИЕ_ТРЕБОВАНИЯ", "Большая часть текста в Times New Roman", Severity.CRITICAL.value),
+    ],
 }
 
 

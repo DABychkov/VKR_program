@@ -59,13 +59,62 @@ def run_color_rgb(run: object) -> str | None:
     return str(font.color.rgb)
 
 
+def _resolve_run_font_name(run: object) -> str | None:
+    """Определяет effective font name c учетом run/символьного стиля/стиля абзаца."""
+    direct_font_name = getattr(getattr(run, "font", None), "name", None)
+    if direct_font_name:
+        return direct_font_name
+
+    run_style = getattr(run, "style", None)
+    if run_style is not None:
+        run_style_font_name = getattr(getattr(run_style, "font", None), "name", None)
+        if run_style_font_name:
+            return run_style_font_name
+
+    paragraph = getattr(run, "_parent", None)
+    paragraph_style = getattr(paragraph, "style", None)
+    checked_styles = 0
+    while paragraph_style is not None and checked_styles < 10:
+        paragraph_style_font_name = getattr(getattr(paragraph_style, "font", None), "name", None)
+        if paragraph_style_font_name:
+            return paragraph_style_font_name
+        paragraph_style = getattr(paragraph_style, "base_style", None)
+        checked_styles += 1
+
+    return None
+
+
+def _resolve_run_font_size_pt(run: object) -> float | None:
+    """Определяет effective font size c учетом run/символьного стиля/стиля абзаца."""
+    direct_size = getattr(getattr(run, "font", None), "size", None)
+    if direct_size is not None:
+        return float(direct_size.pt)
+
+    run_style = getattr(run, "style", None)
+    if run_style is not None:
+        run_style_size = getattr(getattr(run_style, "font", None), "size", None)
+        if run_style_size is not None:
+            return float(run_style_size.pt)
+
+    paragraph = getattr(run, "_parent", None)
+    paragraph_style = getattr(paragraph, "style", None)
+    checked_styles = 0
+    while paragraph_style is not None and checked_styles < 10:
+        paragraph_style_size = getattr(getattr(paragraph_style, "font", None), "size", None)
+        if paragraph_style_size is not None:
+            return float(paragraph_style_size.pt)
+        paragraph_style = getattr(paragraph_style, "base_style", None)
+        checked_styles += 1
+
+    return None
+
+
 def extract_run_feature(run: object) -> RunFeature:
     """Нормализует python-docx run в RunFeature."""
-    font_size_pt = float(run.font.size.pt) if run.font.size is not None else None
     return RunFeature(
         text=run.text,
-        font_name=run.font.name,
-        font_size_pt=font_size_pt,
+        font_name=_resolve_run_font_name(run),
+        font_size_pt=_resolve_run_font_size_pt(run),
         bold=run.bold,
         italic=run.italic,
         underline=bool(run.underline) if run.underline is not None else None,
