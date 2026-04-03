@@ -94,7 +94,41 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
         RuleResult("GENERAL-005", "ОБЩИЕ_ТРЕБОВАНИЯ", "Доля курсива не превышает порог", Severity.RECOMMENDATION.value),
         RuleResult("GENERAL-006", "ОБЩИЕ_ТРЕБОВАНИЯ", "Цвет шрифта преимущественно черный", Severity.CRITICAL.value),
         RuleResult("GENERAL-007", "ОБЩИЕ_ТРЕБОВАНИЯ", "Большая часть текста в Times New Roman", Severity.CRITICAL.value),
+        RuleResult("GENERAL-008", "ОБЩИЕ_ТРЕБОВАНИЯ", "Страницы документа пронумерованы", Severity.CRITICAL.value),
+        RuleResult("GENERAL-009", "ОБЩИЕ_ТРЕБОВАНИЯ", "Нумерация страниц выполнена арабскими цифрами и по центру", Severity.CRITICAL.value),
     ],
+    "FigureValidator": [
+        RuleResult("FIG-001", "РИСУНКИ", "Подпись рисунка расположена снизу", Severity.CRITICAL.value),
+        RuleResult("FIG-002", "РИСУНКИ", "Подпись рисунка по центру, без точки, с номером", Severity.CRITICAL.value),
+        RuleResult("FIG-003", "РИСУНКИ", "Подпись рисунка соответствует паттерну: Рисунок 1 / Рисунок 1.1 / Рисунок А.3", Severity.CRITICAL.value),
+        RuleResult("FIG-004", "РИСУНКИ", "Подпись рисунка выровнена по центру", Severity.CRITICAL.value),
+        RuleResult("FIG-005", "РИСУНКИ", "Пояснение в подписи (при наличии) оформлено через тире и без точки в конце", Severity.CRITICAL.value),
+    ],
+    "TableValidator": [
+        RuleResult("TABLE-001", "ТАБЛИЦЫ", "Заголовок таблицы расположен сверху и выровнен влево", Severity.CRITICAL.value),
+        RuleResult("TABLE-002", "ТАБЛИЦЫ", "В таблице отсутствуют диагональные линии", Severity.CRITICAL.value),
+        RuleResult("TABLE-003", "ТАБЛИЦЫ", "Заголовки граф и боковик начинаются с прописной буквы", Severity.CRITICAL.value),
+        RuleResult("TABLE-004", "ТАБЛИЦЫ", "Заголовки граф выровнены по центру, боковик выровнен по левому краю", Severity.CRITICAL.value),
+    ],
+    "FormulaValidator": [
+        RuleResult("FORMULA-001", "ФОРМУЛЫ", "Формула на отдельной строке и с корректными отбивками", Severity.CRITICAL.value),
+        RuleResult("FORMULA-002", "ФОРМУЛЫ", "Пояснение с \"где\" оформлено корректно", Severity.RECOMMENDATION.value),
+    ],
+    "LinksValidator": [
+        RuleResult("LINK-001", "ССЫЛКИ", "Ссылка на рисунок расположена до подписи рисунка", Severity.CRITICAL.value),
+        RuleResult("LINK-002", "ССЫЛКИ", "Ссылка на таблицу идет до таблицы", Severity.CRITICAL.value),
+        RuleResult("LINK-003", "ССЫЛКИ", "Ссылки на рисунки/таблицы/формулы и источники ссылаются на существующие объекты", Severity.RECOMMENDATION.value),
+    ],
+    "NotesValidator": [
+        RuleResult("NOTE-001", "ПРИМЕЧАНИЯ", "Примечание размещено сразу после связанного материала (текст/рисунок/таблица)", Severity.CRITICAL.value),
+        RuleResult("NOTE-002", "ПРИМЕЧАНИЯ", "Примечание оформлено с большой буквы", Severity.CRITICAL.value),
+        RuleResult("NOTE-003", "ПРИМЕЧАНИЯ", "В примечаниях тире и нумерация используются согласованно", Severity.CRITICAL.value),
+    ],
+    "FootnotesValidator": [
+        RuleResult("FOOT-001", "СНОСКИ", "Маркер сноски резолвится", Severity.CRITICAL.value),
+        RuleResult("FOOT-002", "СНОСКИ", "При наличии сносок обнаружена разделительная линия перед блоком сносок", Severity.CRITICAL.value),
+    ],
+    #93 правила и 15 валидаторов в сумме
 }
 
 

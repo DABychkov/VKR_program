@@ -91,7 +91,7 @@ RE_TABLE_LINK = re.compile(
     re.IGNORECASE,
 )
 # Пример: "формула (3)", "equation 2.1"
-RE_FORMULA_LINK = re.compile(r"(?:формул(?:а|е|ы)|equation|eq\.)\s*\(?([\d]+(?:\.\d+)*)\)?", re.IGNORECASE)
+RE_FORMULA_LINK = re.compile(r"(?:формул(?:а|е|ы|ой)|equation|eq\.)\s*\(?([\d]+(?:\.\d+)*)\)?", re.IGNORECASE)
 
 # Примечания и сноски
 # Пример: "Примечание - Текст"
