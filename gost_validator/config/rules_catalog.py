@@ -95,14 +95,14 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
         RuleResult("GENERAL-006", "ОБЩИЕ_ТРЕБОВАНИЯ", "Цвет шрифта преимущественно черный", Severity.CRITICAL.value),
         RuleResult("GENERAL-007", "ОБЩИЕ_ТРЕБОВАНИЯ", "Большая часть текста в Times New Roman", Severity.CRITICAL.value),
         RuleResult("GENERAL-008", "ОБЩИЕ_ТРЕБОВАНИЯ", "Страницы документа пронумерованы", Severity.CRITICAL.value),
-        RuleResult("GENERAL-009", "ОБЩИЕ_ТРЕБОВАНИЯ", "Нумерация страниц выполнена арабскими цифрами и по центру", Severity.CRITICAL.value),
+        RuleResult("GENERAL-009", "ОБЩИЕ_ТРЕБОВАНИЯ", "Нумерация страниц выполнена по центру", Severity.CRITICAL.value),
     ],
     "FigureValidator": [
         RuleResult("FIG-001", "РИСУНКИ", "Подпись рисунка расположена снизу", Severity.CRITICAL.value),
-        RuleResult("FIG-002", "РИСУНКИ", "Подпись рисунка по центру, без точки, с номером", Severity.CRITICAL.value),
-        RuleResult("FIG-003", "РИСУНКИ", "Подпись рисунка соответствует паттерну: Рисунок 1 / Рисунок 1.1 / Рисунок А.3", Severity.CRITICAL.value),
-        RuleResult("FIG-004", "РИСУНКИ", "Подпись рисунка выровнена по центру", Severity.CRITICAL.value),
-        RuleResult("FIG-005", "РИСУНКИ", "Пояснение в подписи (при наличии) оформлено через тире и без точки в конце", Severity.CRITICAL.value),
+        RuleResult("FIG-002", "РИСУНКИ", "Подпись рисунка по центру", Severity.CRITICAL.value),
+        RuleResult("FIG-003", "РИСУНКИ", "Пояснение (при наличии) в подписи оформлено через тире", Severity.CRITICAL.value),
+        RuleResult("FIG-004", "РИСУНКИ", "Подпись рисунка без точки в конце", Severity.CRITICAL.value),
+        RuleResult("FIG-005", "РИСУНКИ", "Подпись рисунка соответствует паттерну: 1 / 1.1 / А.3(если в приложении)", Severity.CRITICAL.value),
     ],
     "TableValidator": [
         RuleResult("TABLE-001", "ТАБЛИЦЫ", "Заголовок таблицы расположен сверху и выровнен влево", Severity.CRITICAL.value),
@@ -113,6 +113,8 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
     "FormulaValidator": [
         RuleResult("FORMULA-001", "ФОРМУЛЫ", "Формула на отдельной строке и с корректными отбивками", Severity.CRITICAL.value),
         RuleResult("FORMULA-002", "ФОРМУЛЫ", "Пояснение с \"где\" оформлено корректно", Severity.RECOMMENDATION.value),
+        RuleResult("FORMULA-003", "ФОРМУЛЫ", "Справа от формулы есть ее номер", Severity.RECOMMENDATION.value),
+        RuleResult("FORMULA-004", "ФОРМУЛЫ", "Номер формулы соответсвует шаблонам: (1), (1.2.3), etc.", Severity.RECOMMENDATION.value),
     ],
     "LinksValidator": [
         RuleResult("LINK-001", "ССЫЛКИ", "Ссылка на рисунок расположена до подписи рисунка", Severity.CRITICAL.value),

@@ -1,4 +1,4 @@
-"""Параметризованные проверки для правил GENERAL-001..GENERAL-007."""
+"""Параметризованные проверки для правил GENERAL-001..GENERAL-009."""
 
 from typing import Any, Iterable
 
@@ -154,3 +154,42 @@ def check_target_font_share(
     if share is None:
         return True, None
     return share >= min_target_share, share
+
+
+def check_page_numbering_present(
+    footer_features: Iterable[Any],
+) -> list[int]:
+    """Возвращает section_index секций без поля нумерации страницы (PAGE)."""
+    invalid_sections: list[int] = []
+    for footer in footer_features:
+        has_page_field = bool(getattr(footer, "has_page_field", False))
+        if has_page_field:
+            continue
+
+        invalid_sections.append(int(getattr(footer, "section_index", -1)))
+
+    return invalid_sections
+
+
+def check_page_numbering_centered(
+    footer_features: Iterable[Any],
+    *,
+    required_alignment: str = "center",
+) -> list[int]:
+    """Возвращает section_index секций, где номер страницы не выровнен по центру."""
+    invalid_sections: list[int] = []
+
+    for footer in footer_features:
+        section_index = int(getattr(footer, "section_index", -1))
+        has_page_field = bool(getattr(footer, "has_page_field", False))
+        if not has_page_field:
+            continue
+
+        alignment = getattr(footer, "alignment", "unknown")
+
+        if alignment == required_alignment:
+            continue
+
+        invalid_sections.append(section_index)
+
+    return invalid_sections

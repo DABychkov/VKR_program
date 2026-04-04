@@ -1,17 +1,19 @@
-"""Валидатор общих требований оформления (GENERAL-001..GENERAL-007)."""
+"""Валидатор общих требований оформления (GENERAL-001..GENERAL-009)."""
 
-from ..models.document_structure import DocumentStructure
-from ..models.validation_result import ValidationResult
-from ..utils.general_utils import (
+from ...models.document_structure import DocumentStructure
+from ...models.validation_result import ValidationResult
+from ...utils.general_utils import (
     check_first_line_indent,
     check_italic_share,
     check_line_spacing,
     check_min_font_size_share,
     check_non_black_share,
+    check_page_numbering_centered,
+    check_page_numbering_present,
     check_page_margins,
     check_target_font_share,
 )
-from .base_validator import BaseValidator
+from ..base_validator import BaseValidator
 
 
 class GeneralRequirementsValidator(BaseValidator):
@@ -23,14 +25,6 @@ class GeneralRequirementsValidator(BaseValidator):
 
         if rich_doc is None:
             return result
-
-        def format_int_list(values: list[int], preview_limit: int = 12) -> str:
-            if not values:
-                return ""
-            preview = ", ".join(str(v) for v in values[:preview_limit])
-            if len(values) > preview_limit:
-                preview += f", ... (+{len(values) - preview_limit})"
-            return preview
 
         def format_share(share: float | None) -> str:
             if share is None:
@@ -48,8 +42,7 @@ class GeneralRequirementsValidator(BaseValidator):
             result.add_rule(
                 "GENERAL-001",
                 "FAIL",
-                "Профиль полей 30/15/20/20 мм нарушен в секциях: "
-                f"{format_int_list(invalid_sections)}.",
+                "Профиль полей 30/15/20/20 мм нарушен.",
             )
         else:
             result.add_rule("GENERAL-001", "OK")
@@ -63,8 +56,7 @@ class GeneralRequirementsValidator(BaseValidator):
                 result.add_rule(
                     "GENERAL-002",
                     "FAIL",
-                    "Абзацный отступ не соответствует целевому значению в абзацах: "
-                    f"{format_int_list(invalid_indent)}.",
+                    "Абзацный отступ не соответствует целевому значению около 1.25 см",
                 )
             else:
                 result.add_rule("GENERAL-002", "OK")
@@ -74,8 +66,7 @@ class GeneralRequirementsValidator(BaseValidator):
                 result.add_rule(
                     "GENERAL-003",
                     "FAIL",
-                    "Недопустимый межстрочный интервал в абзацах: "
-                    f"{format_int_list(invalid_spacing)}.",
+                    "Недопустимый межстрочный интервал",
                 )
             else:
                 result.add_rule("GENERAL-003", "OK")
@@ -127,5 +118,29 @@ class GeneralRequirementsValidator(BaseValidator):
                 )
             else:
                 result.add_rule("GENERAL-007", "OK")
+
+        footer_features = getattr(rich_doc, "footer_features", [])
+
+        invalid_footer_sections = check_page_numbering_present(footer_features)
+        if invalid_footer_sections:
+            result.add_rule(
+                "GENERAL-008",
+                "FAIL",
+                "Нумерация страниц отсутствует в секциях",
+            )
+        else:
+            result.add_rule("GENERAL-008", "OK")
+
+        has_any_page_field = any(bool(getattr(footer, "has_page_field", False)) for footer in footer_features)
+        if has_any_page_field:
+            invalid_centered_sections = check_page_numbering_centered(footer_features)
+            if invalid_centered_sections:
+                result.add_rule(
+                    "GENERAL-009",
+                    "FAIL",
+                    "Нумерация страниц должна быть по центру",
+                )
+            else:
+                result.add_rule("GENERAL-009", "OK")
 
         return result

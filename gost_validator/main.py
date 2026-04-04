@@ -20,6 +20,7 @@ from gost_validator.validators.terms_validator import TermsValidator
 from gost_validator.validators.abbreviations_validator import AbbreviationsValidator
 from gost_validator.validators.references_validator import ReferencesValidator
 from gost_validator.validators.appendices_validator import AppendicesValidator
+from gost_validator.validators.general_validators import FigureValidator, GeneralRequirementsValidator
 from gost_validator.models.validation_result import Severity
 
 
@@ -50,8 +51,8 @@ def print_rule_results_table(validator_name: str, results) -> None:
     print("    " + "-" * 78)
     for rule in results:
         message = (rule.message or "").replace("\n", " ").strip()
-        if len(message) > 60:
-            message = message[:57] + "..."
+        if len(message) > 100:
+            message = message[:100] + "..."
         print(
             "    "
             f"{rule.rule_id:<12} | "
@@ -163,6 +164,7 @@ def debug_rich_document(file_path: str) -> None:
             f"near_drawing={caption.has_nearby_drawing} "
             f"drawing_pos={caption.drawing_relative_position} "
             f"text='{text}'"
+            f"pattern={caption.pattern_type}"
         )
 
     print("\nПервые 10 формул:")
@@ -263,6 +265,8 @@ def validate_document(file_path: str) -> None:
     service.register(AbbreviationsValidator())
     service.register(ReferencesValidator())
     service.register(AppendicesValidator())
+    service.register(GeneralRequirementsValidator())
+    service.register(FigureValidator())
 
     # Запускаем проверку
     results = service.validate(doc)
@@ -320,7 +324,7 @@ def main():
         if not path:
             continue
 
-        is_rich_mode = False
+        is_rich_mode = True
         target_path = path
         if path.lower().startswith("rich "):
             is_rich_mode = True

@@ -6,12 +6,18 @@ from .general_requirements_utils import (
     check_line_spacing,
     check_min_font_size_share,
     check_non_black_share,
+    check_page_numbering_centered,
+    check_page_numbering_present,
     check_page_margins,
     check_target_font_share,
 )
 from .figure_rules_utils import (
     check_figure_caption_below,
+    check_figure_caption_centered,
+    check_figure_caption_explanation_dash,
     check_figure_caption_format,
+    check_figure_caption_pattern,
+    check_figure_caption_without_period,
 )
 from .table_rules_utils import (
     check_table_title_position_left,
@@ -33,7 +39,13 @@ __all__ = [
     "check_italic_share",
     "check_non_black_share",
     "check_target_font_share",
+    "check_page_numbering_present",
+    "check_page_numbering_centered",
     "check_figure_caption_below",
+    "check_figure_caption_centered",
+    "check_figure_caption_without_period",
+    "check_figure_caption_pattern",
+    "check_figure_caption_explanation_dash",
     "check_figure_caption_format",
     "check_table_title_position_left",
     "check_table_link_before_table",
