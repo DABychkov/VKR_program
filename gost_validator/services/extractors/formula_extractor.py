@@ -22,6 +22,18 @@ _FORMULA_NUMBER_RE = re.compile(
 _WHERE_RE = re.compile(r"^\s*(где|where)\b(?!\s*:)", re.IGNORECASE)
 
 
+def _formula_number_pattern(number_token: str | None) -> str | None:
+    if not number_token:
+        return None
+    if re.match(r"^[A-Za-zА-Яа-я]\.\d+$", number_token):
+        return "formula_number_appendix"
+    if re.match(r"^\d+\.\d+$", number_token):
+        return "formula_number_sectional"
+    if re.match(r"^\d+$", number_token):
+        return "formula_number_global"
+    return "formula_number_unknown"
+
+
 def _has_omml(paragraph: object) -> bool:
     p = paragraph._p
     return bool(
@@ -113,7 +125,8 @@ def extract_formula_features(doc: Document) -> list[FormulaFeature]:
             continue
 
         number_match = _FORMULA_NUMBER_RE.search(text)
-        number_pattern = number_match.group(1) if number_match else None
+        number = number_match.group(1) if number_match else None
+        number_pattern = _formula_number_pattern(number)
 
         prev_text = clean_text(paragraphs[paragraph_index - 1].text) if paragraph_index > 0 else ""
         next_text = clean_text(paragraphs[paragraph_index + 1].text) if paragraph_index + 1 < len(paragraphs) else ""
@@ -124,8 +137,9 @@ def extract_formula_features(doc: Document) -> list[FormulaFeature]:
                 paragraph_index=paragraph_index,
                 formula_text=_display_formula_text(text, omml_exists),
                 alignment=resolve_paragraph_alignment(paragraph),
+                number=number,
                 number_pattern=number_pattern,
-                number_alignment_right=_number_alignment_right(paragraph, number_pattern),
+                number_alignment_right=_number_alignment_right(paragraph, number),
                 has_blank_line_before=(paragraph_index > 0 and prev_text == ""),
                 has_blank_line_after=(next_text == ""),
                 has_explanation_where=has_where,

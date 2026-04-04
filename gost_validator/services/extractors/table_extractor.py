@@ -5,10 +5,12 @@
 
 from __future__ import annotations
 
+import re
+
 from docx import Document
 from docx.oxml.ns import qn
 
-from ...config.regex_patterns import RE_TABLE_CONTINUATION, RE_TABLE_TITLE
+from ...config.regex_patterns import RE_APPENDIX_HEADER, RE_TABLE_CONTINUATION, RE_TABLE_TITLE
 from ...models.rich_document_structure import RunFeature, TableCellFeature, TableFeature
 from .common import clean_text, extract_run_feature, resolve_paragraph_alignment
 
@@ -21,12 +23,26 @@ def _collect_cell_runs(cell: object) -> list[RunFeature]:
     return runs
 
 
-def _title_pattern_type(title_text: str | None) -> str | None:
+def _extract_table_number(title_text: str | None) -> str | None:
     if not title_text:
         return None
-    if RE_TABLE_TITLE.search(title_text):
-        return "table_numbered"
-    return None
+    match = RE_TABLE_TITLE.search(title_text)
+    if not match:
+        return None
+    number = match.group(2)
+    return number.strip() if isinstance(number, str) and number.strip() else None
+
+
+def _table_number_pattern(number_token: str | None) -> str | None:
+    if not number_token:
+        return None
+    if number_token.isdigit():
+        return "table_number_global"
+    if re.match(r"^\d+\.\d+$", number_token):
+        return "table_number_sectional"
+    if re.match(r"^[A-Za-zА-Яа-я]\.\d+$", number_token):
+        return "table_number_appendix"
+    return "table_number_unknown"
 
 
 def _is_valid_table_title_text(text: str | None) -> bool:
@@ -155,6 +171,72 @@ def _table_prev_paragraph_map(doc: Document) -> dict[int, int | None]:
     return prev_map
 
 
+def _resolve_table_title_near_anchor(
+    paragraphs: list[object],
+    anchor_paragraph_index: int | None,
+) -> tuple[str | None, int | None, str]:
+    if anchor_paragraph_index is None:
+        return None, None, "unknown"
+
+    # 1) Предпочитаем стандартный случай: заголовок над таблицей.
+    for probe_index in (anchor_paragraph_index, anchor_paragraph_index - 1, anchor_paragraph_index - 2):
+        if not (0 <= probe_index < len(paragraphs)):
+            continue
+
+        paragraph = paragraphs[probe_index]
+        candidate = clean_text(paragraph.text)
+        if not candidate:
+            continue
+
+        if _is_valid_table_title_text(candidate):
+            return candidate, probe_index, resolve_paragraph_alignment(paragraph)
+
+        # Встретили непустой абзац без заголовка: дальше вверх уже не считаем заголовком этой таблицы.
+        break
+
+    # 2) Нестандартный случай: заголовок под таблицей.
+    for probe_index in (anchor_paragraph_index + 1, anchor_paragraph_index + 2):
+        if not (0 <= probe_index < len(paragraphs)):
+            continue
+
+        paragraph = paragraphs[probe_index]
+        candidate = clean_text(paragraph.text)
+        if not candidate:
+            continue
+
+        if _is_valid_table_title_text(candidate):
+            return candidate, probe_index, resolve_paragraph_alignment(paragraph)
+
+        # Непустой абзац без заголовка — глубже вниз не идем.
+        break
+
+    return None, None, "unknown"
+
+
+def _table_title_relative_position(
+    table_anchor_paragraph_index: int | None,
+    title_paragraph_index: int | None,
+) -> str:
+    if table_anchor_paragraph_index is None or title_paragraph_index is None:
+        return "unknown"
+    if title_paragraph_index <= table_anchor_paragraph_index:
+        return "above"
+    if title_paragraph_index > table_anchor_paragraph_index:
+        return "below"
+    return "same_paragraph"
+
+
+def _is_in_appendix_context(paragraphs: list[object], anchor_paragraph_index: int | None) -> bool:
+    if anchor_paragraph_index is None:
+        return False
+
+    # Аналогично рисункам: после заголовка "ПРИЛОЖЕНИЕ ..." считаем, что объект в приложении.
+    for paragraph in paragraphs[: anchor_paragraph_index + 1]:
+        if RE_APPENDIX_HEADER.match(clean_text(paragraph.text)):
+            return True
+    return False
+
+
 def extract_table_features(doc: Document) -> list[TableFeature]:
     """Возвращает признаки таблиц документа.
 
@@ -169,22 +251,21 @@ def extract_table_features(doc: Document) -> list[TableFeature]:
     """
     table_features: list[TableFeature] = []
     prev_paragraph_map = _table_prev_paragraph_map(doc)
+    paragraphs = list(doc.paragraphs)
 
     for table_index, table in enumerate(doc.tables):
         rows_count = len(table.rows)
         cols_count = len(table.columns) if rows_count > 0 else 0
         prev_paragraph_index = prev_paragraph_map.get(table_index)
-        prev_paragraph = doc.paragraphs[prev_paragraph_index] if prev_paragraph_index is not None else None
+        title_text, title_paragraph_index, title_alignment = _resolve_table_title_near_anchor(
+            paragraphs,
+            prev_paragraph_index,
+        )
 
-        title_text = None
-        title_paragraph_index = None
-        title_alignment = "unknown"
-        if prev_paragraph is not None:
-            candidate = clean_text(prev_paragraph.text)
-            if _is_valid_table_title_text(candidate):
-                title_text = candidate
-                title_paragraph_index = prev_paragraph_index
-                title_alignment = resolve_paragraph_alignment(prev_paragraph)
+        table_number = _extract_table_number(title_text)
+        table_number_pattern = _table_number_pattern(table_number)
+        title_relative_position = _table_title_relative_position(prev_paragraph_index, title_paragraph_index)
+        in_appendix = _is_in_appendix_context(paragraphs, prev_paragraph_index)
 
         inside_h, inside_v = _table_inside_borders(table)
         outer_top, outer_bottom, outer_left, outer_right = _table_outer_borders(table)
@@ -198,7 +279,10 @@ def extract_table_features(doc: Document) -> list[TableFeature]:
                 title_above_text=title_text,
                 title_paragraph_index=title_paragraph_index,
                 title_alignment=title_alignment,
-                title_pattern_type=_title_pattern_type(title_text),
+                title_relative_position=title_relative_position,
+                in_appendix=in_appendix,
+                number=table_number,
+                number_pattern=table_number_pattern,
                 has_inside_horizontal_borders=inside_h,
                 has_inside_vertical_borders=inside_v,
                 has_outer_top_border=outer_top,

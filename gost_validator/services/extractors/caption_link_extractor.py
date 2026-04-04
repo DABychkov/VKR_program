@@ -110,12 +110,7 @@ def _extract_figure_number(text: str) -> str | None:
 
 
 def _extract_table_number(text: str | None) -> str | None:
-    if not text:
-        return None
-    match = RE_TABLE_TITLE.match(text)
-    if not match:
-        return None
-    return _normalize_target_number(match.group(2))
+    return _normalize_target_number(text)
 
 
 def _extract_formula_number(number_pattern: str | None) -> str | None:
@@ -292,13 +287,13 @@ def resolve_non_source_links(
 
     table_numbers: set[str] = set()
     for table in table_features:
-        number = _extract_table_number(table.title_above_text)
+        number = _extract_table_number(getattr(table, "number", None))
         if number:
             table_numbers.add(number)
 
     formula_numbers: set[str] = set()
     for formula in formula_features:
-        number = _extract_formula_number(formula.number_pattern)
+        number = _extract_formula_number(getattr(formula, "number", None))
         if number:
             formula_numbers.add(number)
 

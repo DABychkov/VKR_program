@@ -127,7 +127,9 @@ def check_table_link_before_table(links_features: Iterable[Any], table_features:
     for table in table_features:
         table_index = int(getattr(table, "table_index", -1))
         table_anchor_index = getattr(table, "table_anchor_paragraph_index", None)
-        table_number = _extract_table_number(getattr(table, "title_above_text", None))
+        table_number = getattr(table, "number", None)
+        if not table_number:
+            table_number = _extract_table_number(getattr(table, "title_above_text", None))
 
         if table_anchor_index is None or not table_number:
             invalid_indexes.append(table_index)

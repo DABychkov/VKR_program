@@ -83,7 +83,10 @@ class TableFeature:
     title_above_text: str | None = None  # заголовок выше таблицы
     title_paragraph_index: int | None = None  # индекс абзаца заголовка таблицы (если найден)
     title_alignment: AlignmentValue = "unknown"  # выравнивание заголовка
-    title_pattern_type: str | None = None  # шаблон: "Table 1", "Таблица 1", etc
+    title_relative_position: Literal["above", "below", "same_paragraph", "unknown"] | None = None
+    in_appendix: bool = False  # в приложении ли таблица
+    number: str | None = None  # значение номера таблицы: "1", "1.1", "А.1"
+    number_pattern: str | None = None  # тип шаблона: table_number_global/sectional/appendix/unknown
 
     has_inside_horizontal_borders: bool | None = None  # горизонтальные линии внутри
     has_inside_vertical_borders: bool | None = None  # вертикальные линии внутри
@@ -122,7 +125,8 @@ class FormulaFeature:
     paragraph_index: int  # в каком абзаце формула
     formula_text: str  # текст/восстановленная формула
     alignment: AlignmentValue = "unknown"  # выравнивание
-    number_pattern: str | None = None  # шаблон номера: "(1)", "(1.2.3)", etc
+    number: str | None = None  # значение номера без скобок: "1", "1.2", "А.2"
+    number_pattern: str | None = None  # тип шаблона: formula_number_global/sectional/appendix/unknown
     number_alignment_right: bool | None = None  # номер справа
 
     has_blank_line_before: bool | None = None  # пустая строка перед
