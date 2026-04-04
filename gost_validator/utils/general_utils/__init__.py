@@ -18,6 +18,7 @@ from .figure_rules_utils import (
     check_figure_caption_format,
     check_figure_caption_pattern,
     check_figure_caption_without_period,
+    has_any_caption_explanation,
 )
 from .table_rules_utils import (
     check_table_title_position_left,
@@ -47,6 +48,7 @@ __all__ = [
     "check_figure_caption_pattern",
     "check_figure_caption_explanation_dash",
     "check_figure_caption_format",
+    "has_any_caption_explanation",
     "check_table_title_position_left",
     "check_table_link_before_table",
     "check_formula_line_and_spacing",

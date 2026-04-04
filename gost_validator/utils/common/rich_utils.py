@@ -11,6 +11,35 @@ def is_centered(paragraph_feature: Any) -> bool:
     return getattr(paragraph_feature, "alignment", "unknown") == "center"
 
 
+def format_indexed_examples(
+    text_by_index: dict[int, str],
+    indexes: Iterable[int],
+    *,
+    preview_limit: int = 3,
+    max_text_length: int = 80,
+    prefix: str = " Примеры ошибки: ",
+) -> str:
+    """Формирует строку с примерами по словарю {index: text} и списку индексов."""
+    unique_indexes = list(dict.fromkeys(indexes))
+    snippets: list[str] = []
+
+    for paragraph_index in unique_indexes:
+        text = str(text_by_index.get(paragraph_index, "") or "").strip()
+        if not text:
+            continue
+
+        if len(text) > max_text_length:
+            text = f"{text[: max_text_length - 3]}..."
+
+        snippets.append(f'"{text}"')
+        if len(snippets) >= preview_limit:
+            break
+
+    if not snippets:
+        return ""
+    return prefix + "; ".join(snippets) + "."
+
+
 def is_bold(
     paragraph_feature: Any,
     min_bold_ratio: float = 0.5,

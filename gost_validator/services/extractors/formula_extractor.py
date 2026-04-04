@@ -16,7 +16,9 @@ from ...models.rich_document_structure import FormulaFeature
 from .common import clean_text, resolve_paragraph_alignment
 
 
-_FORMULA_NUMBER_RE = re.compile(r"\((\d+(?:\.\d+)*)\)\s*$")
+_FORMULA_NUMBER_RE = re.compile(
+    r"\(((?:\d+(?:\.\d+)*)|(?:[A-Za-zА-Яа-я]\.\d+(?:\.\d+)*))\)\s*$"
+)
 _WHERE_RE = re.compile(r"^\s*(где|where)\b(?!\s*:)", re.IGNORECASE)
 
 

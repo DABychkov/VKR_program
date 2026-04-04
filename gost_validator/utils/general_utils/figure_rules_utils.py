@@ -6,6 +6,22 @@ from collections.abc import Iterable
 from typing import Any
 
 
+def _caption_has_explanation(caption: Any) -> bool:
+    caption_number = str(getattr(caption, "caption_number", "") or "").strip()
+    caption_text = str(getattr(caption, "caption_text", "") or "")
+    if not caption_number or not caption_text:
+        return False
+
+    tail = caption_text.split(caption_number, 1)[-1].strip() if caption_number in caption_text else ""
+    tail_without_separator = tail.lstrip("-–—: ").strip()
+    return bool(tail_without_separator)
+
+
+def has_any_caption_explanation(figure_caption_features: Iterable[Any]) -> bool:
+    """Проверяет, есть ли хотя бы у одной подписи пояснение после номера."""
+    return any(_caption_has_explanation(caption) for caption in figure_caption_features)
+
+
 def check_figure_caption_below(figure_caption_features: Iterable[Any]) -> list[int]:
     """Возвращает paragraph_index подписей, которые не расположены под рисунком."""
     invalid_indexes: list[int] = []
@@ -69,9 +85,10 @@ def check_figure_caption_pattern(figure_caption_features: Iterable[Any]) -> list
 
         has_number = bool(caption_number and str(caption_number).strip())
         is_known_pattern = pattern_type in allowed_pattern_types
+        is_unknown_pattern = pattern_type == "figure_caption_unknown"
         is_appendix_pattern_outside_appendix = (not in_appendix) and pattern_type == "figure_caption_appendix"
 
-        if has_number and is_known_pattern and not is_appendix_pattern_outside_appendix:
+        if has_number and is_known_pattern and not is_unknown_pattern and not is_appendix_pattern_outside_appendix:
             continue
 
         invalid_indexes.append(paragraph_index)
@@ -85,17 +102,12 @@ def check_figure_caption_explanation_dash(figure_caption_features: Iterable[Any]
     for caption in figure_caption_features:
         paragraph_index = int(getattr(caption, "paragraph_index", -1))
         caption_number = getattr(caption, "caption_number", None)
-        caption_text = str(getattr(caption, "caption_text", "") or "")
         has_dash_separator = bool(getattr(caption, "has_dash_separator", False))
 
         if not caption_number:
             continue
 
-        # Если после номера есть непустой текст, считаем, что у подписи есть пояснение.
-        number_token = str(caption_number).strip()
-        tail = caption_text.split(number_token, 1)[-1].strip() if number_token and number_token in caption_text else ""
-        tail_without_separator = tail.lstrip("-–—: ").strip()
-        has_explanation = bool(tail_without_separator)
+        has_explanation = _caption_has_explanation(caption)
 
         if not has_explanation:
             continue

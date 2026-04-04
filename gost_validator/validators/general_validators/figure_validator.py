@@ -2,12 +2,14 @@
 
 from ...models.document_structure import DocumentStructure
 from ...models.validation_result import ValidationResult
+from ...utils.common.rich_utils import format_indexed_examples
 from ...utils.general_utils import (
     check_figure_caption_below,
     check_figure_caption_centered,
     check_figure_caption_explanation_dash,
     check_figure_caption_pattern,
     check_figure_caption_without_period,
+    has_any_caption_explanation,
 )
 from ..base_validator import BaseValidator
 
@@ -35,21 +37,11 @@ class FigureValidator(BaseValidator):
             caption_text_by_index.setdefault(paragraph_index, caption_text)
 
         def format_caption_examples(paragraph_indexes: list[int], preview_limit: int = 3) -> str:
-            unique_indexes = list(dict.fromkeys(paragraph_indexes))
-            snippets: list[str] = []
-            for paragraph_index in unique_indexes:
-                caption_text = caption_text_by_index.get(paragraph_index)
-                if not caption_text:
-                    continue
-                if len(caption_text) > 80:
-                    caption_text = f"{caption_text[:77]}..."
-                snippets.append(f'"{caption_text}"')
-                if len(snippets) >= preview_limit:
-                    break
-
-            if not snippets:
-                return ""
-            return " Примеры ошибки: " + "; ".join(snippets) + "."
+            return format_indexed_examples(
+                caption_text_by_index,
+                paragraph_indexes,
+                preview_limit=preview_limit,
+            )
 
         invalid_below = check_figure_caption_below(figure_caption_features)
         if invalid_below:
@@ -72,29 +64,7 @@ class FigureValidator(BaseValidator):
             )
         else:
             result.add_rule("FIG-002", "OK")
-
-        invalid_explanation_dash = check_figure_caption_explanation_dash(figure_caption_features)
-        if invalid_explanation_dash:
-            result.add_rule(
-                "FIG-003",
-                "FAIL",
-                "Пояснение в подписи (при наличии) должно быть оформлено через тире."
-                + format_caption_examples(invalid_explanation_dash),
-            )
-        else:
-            result.add_rule("FIG-003", "OK")
-
-        invalid_without_period = check_figure_caption_without_period(figure_caption_features)
-        if invalid_without_period:
-            result.add_rule(
-                "FIG-004",
-                "FAIL",
-                "Подпись рисунка не должна заканчиваться точкой."
-                + format_caption_examples(invalid_without_period),
-            )
-        else:
-            result.add_rule("FIG-004", "OK")
-
+        
         invalid_pattern = check_figure_caption_pattern(figure_caption_features)
         if invalid_pattern:
             result.add_rule(
@@ -106,4 +76,26 @@ class FigureValidator(BaseValidator):
         else:
             result.add_rule("FIG-005", "OK")
 
+        if has_any_caption_explanation(figure_caption_features):
+            invalid_explanation_dash = check_figure_caption_explanation_dash(figure_caption_features)
+            if invalid_explanation_dash:
+                result.add_rule(
+                    "FIG-003",
+                    "FAIL",
+                    "Пояснение в подписи (при наличии) должно быть оформлено через тире."
+                    + format_caption_examples(invalid_explanation_dash),
+                )
+            else:
+                result.add_rule("FIG-003", "OK")
+
+            invalid_without_period = check_figure_caption_without_period(figure_caption_features)
+            if invalid_without_period:
+                result.add_rule(
+                    "FIG-004",
+                    "FAIL",
+                    "Подпись рисунка не должна заканчиваться точкой."
+                    + format_caption_examples(invalid_without_period),
+                )
+            else:
+                result.add_rule("FIG-004", "OK")
         return result

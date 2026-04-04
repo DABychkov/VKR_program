@@ -105,10 +105,13 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
         RuleResult("FIG-005", "РИСУНКИ", "Подпись рисунка соответствует паттерну: 1 / 1.1 / А.3(если в приложении)", Severity.CRITICAL.value),
     ],
     "TableValidator": [
-        RuleResult("TABLE-001", "ТАБЛИЦЫ", "Заголовок таблицы расположен сверху и выровнен влево", Severity.CRITICAL.value),
-        RuleResult("TABLE-002", "ТАБЛИЦЫ", "В таблице отсутствуют диагональные линии", Severity.CRITICAL.value),
-        RuleResult("TABLE-003", "ТАБЛИЦЫ", "Заголовки граф и боковик начинаются с прописной буквы", Severity.CRITICAL.value),
-        RuleResult("TABLE-004", "ТАБЛИЦЫ", "Заголовки граф выровнены по центру, боковик выровнен по левому краю", Severity.CRITICAL.value),
+        RuleResult("TABLE-001", "ТАБЛИЦЫ", "Наименование таблицы расположена сверху и выровнен влево", Severity.CRITICAL.value),
+        RuleResult("TABLE-002", "ТАБЛИЦЫ", "Наименование соответсвует патерну  1 / 1.1 / А.3(если в приложении)", Severity.CRITICAL.value),
+        RuleResult("TABLE-003", "ТАБЛИЦЫ", "В таблице отсутствуют диагональные линии", Severity.CRITICAL.value),
+        RuleResult("TABLE-004", "ТАБЛИЦЫ", "Заголовки граф начинаются с прописной буквы", Severity.CRITICAL.value),
+        RuleResult("TABLE-005", "ТАБЛИЦЫ", "Заголовки граф начинаются не заканчивается точкой", Severity.CRITICAL.value),
+        RuleResult("TABLE-006", "ТАБЛИЦЫ", "Заголовки граф выровнены по центру", Severity.CRITICAL.value),
+        RuleResult("TABLE-007", "ТАБЛИЦЫ", "Боковик выровнен по левому краю(не считая 1ой строки)", Severity.RECOMMENDATION.value),
     ],
     "FormulaValidator": [
         RuleResult("FORMULA-001", "ФОРМУЛЫ", "Формула на отдельной строке и с корректными отбивками", Severity.CRITICAL.value),

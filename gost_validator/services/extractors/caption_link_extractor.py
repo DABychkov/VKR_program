@@ -90,7 +90,9 @@ def _figure_caption_pattern(number_token: str) -> str:
         return "figure_caption_appendix"
     if re.match(r"^\d+\.\d+$", number_token):
         return "figure_caption_sectional"
-    return "figure_caption_global"
+    if re.match(r"^\d+$", number_token):
+        return "figure_caption_global"
+    return "figure_caption_unknown"
 
 
 def _normalize_target_number(token: str | None) -> str | None:
