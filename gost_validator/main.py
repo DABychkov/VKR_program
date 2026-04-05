@@ -20,7 +20,7 @@ from gost_validator.validators.terms_validator import TermsValidator
 from gost_validator.validators.abbreviations_validator import AbbreviationsValidator
 from gost_validator.validators.references_validator import ReferencesValidator
 from gost_validator.validators.appendices_validator import AppendicesValidator
-from gost_validator.validators.general_validators import FigureValidator, GeneralRequirementsValidator
+from gost_validator.validators.general_validators import FigureValidator, GeneralRequirementsValidator, TableValidator
 from gost_validator.models.validation_result import Severity
 
 
@@ -134,6 +134,7 @@ def debug_rich_document(file_path: str) -> None:
         print(
             "  "
             f"table={table.table_index} "
+            f"section={table.section_hint} "
             f"size={table.rows_count}x{table.cols_count} "
             f"num={table.number} "
             f"num_pattern={table.number_pattern} "
@@ -272,6 +273,7 @@ def validate_document(file_path: str) -> None:
     service.register(AppendicesValidator())
     service.register(GeneralRequirementsValidator())
     service.register(FigureValidator())
+    service.register(TableValidator())
 
     # Запускаем проверку
     results = service.validate(doc)
@@ -329,7 +331,7 @@ def main():
         if not path:
             continue
 
-        is_rich_mode = True
+        is_rich_mode = False
         target_path = path
         if path.lower().startswith("rich "):
             is_rich_mode = True

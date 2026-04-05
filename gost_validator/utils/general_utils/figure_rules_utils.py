@@ -6,15 +6,18 @@ from collections.abc import Iterable
 from typing import Any
 
 
-def _caption_has_explanation(caption: Any) -> bool:
+def _caption_explanation_tail(caption: Any) -> str:
     caption_number = str(getattr(caption, "caption_number", "") or "").strip()
     caption_text = str(getattr(caption, "caption_text", "") or "")
     if not caption_number or not caption_text:
-        return False
+        return ""
 
     tail = caption_text.split(caption_number, 1)[-1].strip() if caption_number in caption_text else ""
-    tail_without_separator = tail.lstrip("-–—: ").strip()
-    return bool(tail_without_separator)
+    return tail.lstrip("-–—: ").strip()
+
+
+def _caption_has_explanation(caption: Any) -> bool:
+    return bool(_caption_explanation_tail(caption))
 
 
 def has_any_caption_explanation(figure_caption_features: Iterable[Any]) -> bool:
@@ -54,13 +57,20 @@ def check_figure_caption_centered(figure_caption_features: Iterable[Any]) -> lis
 
 
 def check_figure_caption_without_period(figure_caption_features: Iterable[Any]) -> list[int]:
-    """Возвращает paragraph_index подписей, которые заканчиваются точкой."""
+    """Возвращает paragraph_index подписей, где описание не с прописной буквы или с точкой в конце."""
     invalid_indexes: list[int] = []
     for caption in figure_caption_features:
         paragraph_index = int(getattr(caption, "paragraph_index", -1))
         ends_with_period = bool(getattr(caption, "ends_with_period", False))
+        explanation_tail = _caption_explanation_tail(caption)
 
-        if not ends_with_period:
+        if not explanation_tail:
+            continue
+
+        first_char = explanation_tail[0]
+        starts_with_upper = first_char.isalpha() and first_char.isupper()
+
+        if starts_with_upper and not ends_with_period:
             continue
 
         invalid_indexes.append(paragraph_index)

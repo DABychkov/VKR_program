@@ -21,14 +21,25 @@ from .figure_rules_utils import (
     has_any_caption_explanation,
 )
 from .table_rules_utils import (
+    check_table_header_cells_capital,
+    check_table_header_cells_no_period,
+    check_table_no_diagonal_borders,
+    check_table_number_pattern,
+    check_table_title_capital_no_period,
+    check_table_title_dash_separator,
     check_table_title_position_left,
+    has_non_empty_table_header_cells,
+    has_table_caption,
+    has_table_caption_and_number,
+    has_table_number,
+    has_table_title_name,
+    is_service_terms_abbr_table,
 )
 from .formula_rules_utils import (
     check_formula_line_and_spacing,
     check_formula_where_format,
 )
 from .link_rules_utils import (
-    check_formula_link_before_formula,
     check_figure_link_before_caption,
     check_table_link_before_table,
 )
@@ -50,9 +61,20 @@ __all__ = [
     "check_figure_caption_explanation_dash",
     "check_figure_caption_format",
     "has_any_caption_explanation",
+    "check_table_number_pattern",
+    "check_table_title_dash_separator",
+    "check_table_title_capital_no_period",
+    "check_table_no_diagonal_borders",
+    "check_table_header_cells_capital",
+    "check_table_header_cells_no_period",
+    "has_table_title_name",
+    "has_non_empty_table_header_cells",
+    "has_table_caption",
+    "has_table_number",
+    "has_table_caption_and_number",
+    "is_service_terms_abbr_table",
     "check_table_title_position_left",
     "check_table_link_before_table",
-    "check_formula_link_before_formula",
     "check_formula_line_and_spacing",
     "check_formula_where_format",
     "check_figure_link_before_caption",

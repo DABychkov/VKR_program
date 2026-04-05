@@ -93,7 +93,7 @@ class FigureValidator(BaseValidator):
                 result.add_rule(
                     "FIG-004",
                     "FAIL",
-                    "Подпись рисунка не должна заканчиваться точкой."
+                    "Наименование рисунка (после тире) должно начинаться с прописной буквы и не заканчиваться точкой."
                     + format_caption_examples(invalid_without_period),
                 )
             else:

@@ -10,9 +10,53 @@ import re
 from docx import Document
 from docx.oxml.ns import qn
 
+from ...config.validation_constants import (
+    SECTION_ABBREVIATIONS,
+    SECTION_ABSTRACT,
+    SECTION_COMBINED_DEFINITIONS,
+    SECTION_CONTENTS,
+    SECTION_EXECUTOR_LIST,
+    SECTION_REFERENCES,
+    SECTION_TERMS,
+)
 from ...config.regex_patterns import RE_APPENDIX_HEADER, RE_TABLE_CONTINUATION, RE_TABLE_TITLE
 from ...models.rich_document_structure import RunFeature, TableCellFeature, TableFeature
 from .common import clean_text, extract_run_feature, resolve_paragraph_alignment
+
+
+SECTION_HINT_MARKERS = (
+    SECTION_TERMS,
+    SECTION_ABBREVIATIONS,
+    SECTION_COMBINED_DEFINITIONS,
+    SECTION_CONTENTS,
+    SECTION_ABSTRACT,
+    SECTION_EXECUTOR_LIST,
+    "ВВЕДЕНИЕ",
+    "ЗАКЛЮЧЕНИЕ",
+    SECTION_REFERENCES,
+    "ПРИЛОЖЕНИЕ",
+)
+
+
+def _normalize_spaces_upper(text: str) -> str:
+    return " ".join(text.split()).upper()
+
+
+def _resolve_section_hint(paragraphs: list[object], anchor_paragraph_index: int | None) -> str | None:
+    if anchor_paragraph_index is None:
+        return None
+
+    for paragraph in reversed(paragraphs[: anchor_paragraph_index + 1]):
+        text = clean_text(paragraph.text)
+        if not text:
+            continue
+
+        normalized = _normalize_spaces_upper(text)
+        for marker in SECTION_HINT_MARKERS:
+            if marker in normalized:
+                return marker
+
+    return None
 
 
 def _collect_cell_runs(cell: object) -> list[RunFeature]:
@@ -266,6 +310,7 @@ def extract_table_features(doc: Document) -> list[TableFeature]:
         table_number_pattern = _table_number_pattern(table_number)
         title_relative_position = _table_title_relative_position(prev_paragraph_index, title_paragraph_index)
         in_appendix = _is_in_appendix_context(paragraphs, prev_paragraph_index)
+        section_hint = _resolve_section_hint(paragraphs, prev_paragraph_index)
 
         inside_h, inside_v = _table_inside_borders(table)
         outer_top, outer_bottom, outer_left, outer_right = _table_outer_borders(table)
@@ -274,6 +319,7 @@ def extract_table_features(doc: Document) -> list[TableFeature]:
             TableFeature(
                 table_index=table_index,
                 table_anchor_paragraph_index=prev_paragraph_index,
+                section_hint=section_hint,
                 rows_count=rows_count,
                 cols_count=cols_count,
                 title_above_text=title_text,
