@@ -36,8 +36,12 @@ from .table_rules_utils import (
     is_service_terms_abbr_table,
 )
 from .formula_rules_utils import (
+    check_formula_centered,
     check_formula_line_and_spacing,
+    check_formula_number_pattern,
+    check_formula_number_right,
     check_formula_where_format,
+    has_formula_number,
 )
 from .link_rules_utils import (
     check_figure_link_before_caption,
@@ -75,7 +79,11 @@ __all__ = [
     "is_service_terms_abbr_table",
     "check_table_title_position_left",
     "check_table_link_before_table",
+    "check_formula_centered",
     "check_formula_line_and_spacing",
+    "check_formula_number_right",
+    "check_formula_number_pattern",
     "check_formula_where_format",
+    "has_formula_number",
     "check_figure_link_before_caption",
 ]

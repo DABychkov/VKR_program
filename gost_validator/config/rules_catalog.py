@@ -114,10 +114,11 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
         RuleResult("TABLE-007", "ТАБЛИЦЫ", "Заголовки граф начинаются не заканчивается точкой", Severity.CRITICAL.value),
     ],
     "FormulaValidator": [
-        RuleResult("FORMULA-001", "ФОРМУЛЫ", "Формула на отдельной строке и с корректными отбивками", Severity.CRITICAL.value),
+        RuleResult("FORMULA-001", "ФОРМУЛЫ", "Формула на отдельной строке и с корректными отбивками", Severity.RECOMMENDATION.value),
         RuleResult("FORMULA-002", "ФОРМУЛЫ", "Пояснение с \"где\" оформлено корректно", Severity.RECOMMENDATION.value),
-        RuleResult("FORMULA-003", "ФОРМУЛЫ", "Справа от формулы есть ее номер", Severity.RECOMMENDATION.value),
-        RuleResult("FORMULA-004", "ФОРМУЛЫ", "Номер формулы соответсвует шаблонам: (1), (1.2.3), etc.", Severity.RECOMMENDATION.value),
+        RuleResult("FORMULA-003", "ФОРМУЛЫ", "Справа от формулы есть ее номер", Severity.CRITICAL.value),
+        RuleResult("FORMULA-004", "ФОРМУЛЫ", "Формула находиться в центре", Severity.CRITICAL.value),
+        RuleResult("FORMULA-005", "ФОРМУЛЫ", "Номер формулы соответсвует шаблонам: (1), (1.2.3), etc.", Severity.CRITICAL.value),
     ],
     "LinksValidator": [
         RuleResult("LINK-001", "ССЫЛКИ", "Ссылка на рисунок расположена до подписи рисунка", Severity.CRITICAL.value),
