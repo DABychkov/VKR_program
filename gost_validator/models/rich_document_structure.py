@@ -131,6 +131,7 @@ class FormulaFeature:
 
     has_blank_line_before: bool | None = None  # пустая строка перед
     has_blank_line_after: bool | None = None  # пустая строка после формулы (валидатор смотрит на has_explanation_where отдельно)
+    has_where_marker: bool | None = None  # есть ли вообще маркер "где"/"where" (в т.ч. с двоеточием)
     has_explanation_where: bool | None = None  # есть "где"/"where" объяснение
     explanation_sequence_score: float | None = None  # качество объяснения
 

@@ -19,6 +19,7 @@ from .common import clean_text, resolve_paragraph_alignment
 _FORMULA_NUMBER_RE = re.compile(
     r"\(((?:\d+(?:\.\d+)*)|(?:[A-Za-zА-Яа-я]\.\d+(?:\.\d+)*))\)\s*$"
 )
+_WHERE_MARKER_RE = re.compile(r"^\s*(где|where)\b", re.IGNORECASE)
 _WHERE_RE = re.compile(r"^\s*(где|where)\b(?!\s*:)", re.IGNORECASE)
 
 
@@ -130,6 +131,7 @@ def extract_formula_features(doc: Document) -> list[FormulaFeature]:
 
         prev_text = clean_text(paragraphs[paragraph_index - 1].text) if paragraph_index > 0 else ""
         next_text = clean_text(paragraphs[paragraph_index + 1].text) if paragraph_index + 1 < len(paragraphs) else ""
+        has_where_marker = bool(next_text and _WHERE_MARKER_RE.match(next_text))
         has_where = bool(next_text and _WHERE_RE.match(next_text))
 
         features.append(
@@ -142,6 +144,7 @@ def extract_formula_features(doc: Document) -> list[FormulaFeature]:
                 number_alignment_right=_number_alignment_right(paragraph, number),
                 has_blank_line_before=(paragraph_index > 0 and prev_text == ""),
                 has_blank_line_after=(next_text == ""),
+                has_where_marker=has_where_marker,
                 has_explanation_where=has_where,
                 explanation_sequence_score=1.0 if has_where else None,
                 omml_xml=_extract_omml_xml(paragraph),

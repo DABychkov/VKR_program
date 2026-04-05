@@ -56,9 +56,13 @@ class FormulaValidator(BaseValidator):
         else:
             result.add_rule("FORMULA-001", "OK")
 
-        has_any_where_marker = any(bool(getattr(formula, "has_explanation_where", False)) for formula in formula_features)
-        if has_any_where_marker:
-            invalid_where_format = check_formula_where_format(formula_features)
+        formulas_with_where_marker = [
+            formula
+            for formula in formula_features
+            if bool(getattr(formula, "has_where_marker", False))
+        ]
+        if formulas_with_where_marker:
+            invalid_where_format = check_formula_where_format(formulas_with_where_marker)
             if invalid_where_format:
                 result.add_rule(
                     "FORMULA-002",
