@@ -28,6 +28,7 @@ from .formula_rules_utils import (
     check_formula_where_format,
 )
 from .link_rules_utils import (
+    check_formula_link_before_formula,
     check_figure_link_before_caption,
     check_table_link_before_table,
 )
@@ -51,6 +52,7 @@ __all__ = [
     "has_any_caption_explanation",
     "check_table_title_position_left",
     "check_table_link_before_table",
+    "check_formula_link_before_formula",
     "check_formula_line_and_spacing",
     "check_formula_where_format",
     "check_figure_link_before_caption",
