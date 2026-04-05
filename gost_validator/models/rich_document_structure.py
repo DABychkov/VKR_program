@@ -148,6 +148,7 @@ class LinkFeature:
     is_range: bool = False  # диапазон ли (1-5, 1.2-1.5)
     resolved_in_target_list: bool | None = None  # найдена ли цель в документе
     resolved_with_object: bool | None = None  # для figure/table: подтверждена ли цель как реальный объект
+    relative_position_to_target: Literal["before", "after", "same", "unknown"] | None = None
 
 
 @dataclass

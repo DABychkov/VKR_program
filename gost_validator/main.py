@@ -197,6 +197,7 @@ def debug_rich_document(file_path: str) -> None:
             f"resolved={link.resolved_in_target_list} "
             f"resolved_with_object={link.resolved_with_object} "
             f"raw='{link.raw_text}'"
+            f"pos_to_elem={link.relative_position_to_target}"
         )
 
     print("\nПервые 10 примечаний:")

@@ -25,7 +25,7 @@ def _near_material_flags(
     paragraph_index: int,
     figure_caption_indices: set[int],
     table_caption_indices: set[int],
-    window: int = 2,
+    window: int = 5,
 ) -> tuple[bool, bool]:
     near_figure = any(abs(paragraph_index - idx) <= window for idx in figure_caption_indices)
     near_table = any(abs(paragraph_index - idx) <= window for idx in table_caption_indices)

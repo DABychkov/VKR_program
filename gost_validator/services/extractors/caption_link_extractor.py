@@ -12,6 +12,7 @@ from ...config.regex_patterns import (
     RE_FIGURE_CAPTION,
     RE_FIGURE_LINK,
     RE_FORMULA_LINK,
+    RE_REFERENCE_LIST_ITEM,
     RE_SOURCE_LINK,
     RE_TABLE_CONTINUATION,
     RE_TABLE_LINK,
@@ -45,7 +46,6 @@ def _extract_references_numbers(doc: Document) -> set[int] | None:
         return None
 
     numbers: set[int] = set()
-    numbered_line_re = re.compile(r"^(\d{1,4})[\.)]?\s+.+")
 
     for text in paragraphs[start_index + 1 :]:
         if not text:
@@ -55,7 +55,7 @@ def _extract_references_numbers(doc: Document) -> set[int] | None:
         if RE_APPENDIX_HEADER.match(text):
             break
 
-        match = numbered_line_re.match(text)
+        match = RE_REFERENCE_LIST_ITEM.match(text)
         if match:
             numbers.add(int(match.group(1)))
 
@@ -113,8 +113,10 @@ def _extract_table_number(text: str | None) -> str | None:
     return _normalize_target_number(text)
 
 
-def _extract_formula_number(number_pattern: str | None) -> str | None:
-    return _normalize_target_number(number_pattern)
+def _extract_formula_number(number_value: str | None) -> str | None:
+    if not number_value:
+        return None
+    return _normalize_target_number(number_value)
 
 
 def _paragraph_has_drawing(paragraph: Paragraph) -> bool:
@@ -242,23 +244,25 @@ def extract_links_features(doc: Document) -> list[LinkFeature]:
             )
 
         for match in RE_TABLE_LINK.finditer(text):
-            target = match.group(1)
+            raw = match.group(0)
+            target = _normalize_target_number(match.group(1))
             links.append(
                 LinkFeature(
                     link_type="table",
                     paragraph_index=paragraph_index,
-                    raw_text=match.group(0),
+                    raw_text=raw,
                     target_number=target,
                 )
             )
 
         for match in RE_FORMULA_LINK.finditer(text):
-            target = match.group(1)
+            raw = match.group(0)
+            target = _normalize_target_number(match.group(1))
             links.append(
                 LinkFeature(
                     link_type="formula",
                     paragraph_index=paragraph_index,
-                    raw_text=match.group(0),
+                    raw_text=raw,
                     target_number=target,
                 )
             )
@@ -274,9 +278,24 @@ def resolve_non_source_links(
 ) -> list[LinkFeature]:
     """Проставляет resolved-флаги для figure/table/formula ссылок."""
 
-    def _set_resolution(link: LinkFeature, in_list: bool | None, with_object: bool | None) -> None:
+    def _set_resolution(
+        link: LinkFeature,
+        in_list: bool | None,
+        with_object: bool | None,
+        relative: str | None = None,
+    ) -> None:
         link.resolved_in_target_list = in_list
         link.resolved_with_object = with_object
+        link.relative_position_to_target = relative
+
+    def _relative_position(link_paragraph_index: int | None, target_paragraph_index: int | None) -> str:
+        if link_paragraph_index is None or target_paragraph_index is None:
+            return "unknown"
+        if link_paragraph_index < target_paragraph_index:
+            return "before"
+        if link_paragraph_index > target_paragraph_index:
+            return "after"
+        return "same"
 
     figure_by_number: dict[str, list[FigureCaptionFeature]] = {}
     for caption in figure_caption_features:
@@ -285,46 +304,71 @@ def resolve_non_source_links(
             continue
         figure_by_number.setdefault(number, []).append(caption)
 
+    table_index_by_number: dict[str, int] = {}
     table_numbers: set[str] = set()
     for table in table_features:
         number = _extract_table_number(getattr(table, "number", None))
-        if number:
-            table_numbers.add(number)
+        if not number:
+            continue
+        table_numbers.add(number)
+        anchor_index = getattr(table, "table_anchor_paragraph_index", None)
+        title_index = getattr(table, "title_paragraph_index", None)
+        target_index = anchor_index if anchor_index is not None else title_index
+        if target_index is not None:
+            table_index_by_number.setdefault(number, int(target_index))
 
-    formula_numbers: set[str] = set()
+    formula_by_number: dict[str, list[FormulaFeature]] = {}
     for formula in formula_features:
         number = _extract_formula_number(getattr(formula, "number", None))
-        if number:
-            formula_numbers.add(number)
+        if not number:
+            continue
+        formula_by_number.setdefault(number, []).append(formula)
 
     for link in links:
         if link.link_type == "source":
+            in_list = link.resolved_in_target_list
+            with_object = True if in_list is True else (False if in_list is False else None)
+            _set_resolution(link, in_list, with_object, "unknown")
             continue
 
         target_number = _normalize_target_number(link.target_number)
         if not target_number:
-            _set_resolution(link, False, None)
+            _set_resolution(link, False, None, "unknown")
             continue
 
         if link.link_type == "figure":
             matched_captions = figure_by_number.get(target_number, [])
+            target_index = min((c.paragraph_index for c in matched_captions), default=None)
             _set_resolution(
                 link,
                 bool(matched_captions),
                 any(caption.has_nearby_drawing for caption in matched_captions),
+                _relative_position(link.paragraph_index, target_index),
             )
             continue
 
         if link.link_type == "table":
             exists = target_number in table_numbers
             # Для таблиц "object" = реально найденная таблица с указанным номером.
-            _set_resolution(link, exists, exists)
+            _set_resolution(
+                link,
+                exists,
+                exists,
+                _relative_position(link.paragraph_index, table_index_by_number.get(target_number)),
+            )
             continue
 
         if link.link_type == "formula":
-            _set_resolution(link, target_number in formula_numbers, None)
+            matched_formulas = formula_by_number.get(target_number, [])
+            target_index = min((f.paragraph_index for f in matched_formulas), default=None)
+            _set_resolution(
+                link,
+                bool(matched_formulas),
+                any(f.omml_xml is not None for f in matched_formulas),
+                _relative_position(link.paragraph_index, target_index),
+            )
             continue
 
-        _set_resolution(link, None, None)
+        _set_resolution(link, None, None, "unknown")
 
     return links
