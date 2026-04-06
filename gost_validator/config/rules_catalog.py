@@ -121,9 +121,9 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
         RuleResult("FORMULA-005", "ФОРМУЛЫ", "Номер формулы соответсвует шаблонам: (1), (1.2.3), etc.", Severity.CRITICAL.value),
     ],
     "LinksValidator": [
-        RuleResult("LINK-001", "ССЫЛКИ", "Ссылка на рисунок расположена до подписи рисунка", Severity.CRITICAL.value),
+        RuleResult("LINK-001", "ССЫЛКИ", "Ссылки на рисунки/таблицы/формулы и источники ссылаются на существующие объекты", Severity.RECOMMENDATION.value),
         RuleResult("LINK-002", "ССЫЛКИ", "Ссылка на таблицу идет до таблицы", Severity.CRITICAL.value),
-        RuleResult("LINK-003", "ССЫЛКИ", "Ссылки на рисунки/таблицы/формулы и источники ссылаются на существующие объекты", Severity.RECOMMENDATION.value),
+        RuleResult("LINK-003", "ССЫЛКИ", "Ссылка на рисунок расположена до подписи рисунка", Severity.CRITICAL.value),
     ],
     "NotesValidator": [
         RuleResult("NOTE-001", "ПРИМЕЧАНИЯ", "Примечание размещено сразу после связанного материала (текст/рисунок/таблица)", Severity.CRITICAL.value),

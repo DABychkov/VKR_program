@@ -45,6 +45,7 @@ from .formula_rules_utils import (
 )
 from .link_rules_utils import (
     check_figure_link_before_caption,
+    check_links_resolve_to_existing_targets,
     check_table_link_before_table,
 )
 
@@ -86,4 +87,5 @@ __all__ = [
     "check_formula_where_format",
     "has_formula_number",
     "check_figure_link_before_caption",
+    "check_links_resolve_to_existing_targets",
 ]
