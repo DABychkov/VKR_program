@@ -126,9 +126,13 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
         RuleResult("LINK-003", "ССЫЛКИ", "Ссылка на рисунок расположена до подписи рисунка", Severity.CRITICAL.value),
     ],
     "NotesValidator": [
-        RuleResult("NOTE-001", "ПРИМЕЧАНИЯ", "Примечание размещено сразу после связанного материала (текст/рисунок/таблица)", Severity.CRITICAL.value),
-        RuleResult("NOTE-002", "ПРИМЕЧАНИЯ", "Примечание оформлено с большой буквы", Severity.CRITICAL.value),
-        RuleResult("NOTE-003", "ПРИМЕЧАНИЯ", "В примечаниях тире и нумерация используются согласованно", Severity.CRITICAL.value),
+        RuleResult("NOTE-001", "ПРИМЕЧАНИЯ", "Примечание найдено, но не соответствует шаблону", Severity.CRITICAL.value),
+        RuleResult("NOTE-002", "ПРИМЕЧАНИЯ", "Примечание размещено сразу после связанного материала (рисунок/таблица)", Severity.RECOMMENDATION.value),
+        RuleResult("NOTE-003", "ПРИМЕЧАНИЯ", "Примечание оформлено с большой буквы", Severity.CRITICAL.value),
+        RuleResult("NOTE-004", "ПРИМЕЧАНИЯ", "Текст примечания начинается с большой буквы", Severity.CRITICAL.value),
+        RuleResult("NOTE-005", "ПРИМЕЧАНИЯ", "Если примечаний несколько, пишется \"Примечания\", а не \"Примечание\"", Severity.CRITICAL.value),
+        RuleResult("NOTE-006", "ПРИМЕЧАНИЯ", "В примечаниях тире и нумерация используются согласованно", Severity.CRITICAL.value),
+        RuleResult("NOTE-007", "ПРИМЕЧАНИЯ", "В нумерованных примечаниях нет точки после номера", Severity.CRITICAL.value),
     ],
     "FootnotesValidator": [
         RuleResult("FOOT-001", "СНОСКИ", "Маркер сноски резолвится", Severity.CRITICAL.value),

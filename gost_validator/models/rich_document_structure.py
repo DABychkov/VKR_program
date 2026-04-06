@@ -158,8 +158,9 @@ class NoteFeature:
 
     paragraph_index: int  # индекс абзаца
     raw_text: str  # исходный текст абзаца
-    note_kind: Literal["single", "group_header", "group_item", "numbered_single"] = "single"
+    note_kind: Literal["single", "group_header", "group_item", "numbered_single", "unknown"] = "single"
     item_number: int | None = None  # номер пункта примечания, если есть
+    has_dot_after_number: bool | None = None  # есть ли точка сразу после номера ("1." vs "1")
     has_dash_separator: bool | None = None  # есть ли разделитель "-" после слова "Примечание"
     near_figure_caption: bool = False  # рядом есть подпись рисунка
     near_table_caption: bool = False  # рядом есть подпись/заголовок таблицы

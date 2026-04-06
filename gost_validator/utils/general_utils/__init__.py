@@ -48,6 +48,15 @@ from .link_rules_utils import (
     check_links_resolve_to_existing_targets,
     check_table_link_before_table,
 )
+from .note_rules_utils import (
+    check_note_dash_numbering_consistency,
+    check_note_group_header_plural_for_multiple,
+    check_note_keyword_capitalized,
+    check_note_numbering_without_dot,
+    check_note_placement_near_related_material,
+    check_note_starts_with_capital,
+    check_note_unrecognized_pattern,
+)
 
 __all__ = [
     "check_page_margins",
@@ -88,4 +97,11 @@ __all__ = [
     "has_formula_number",
     "check_figure_link_before_caption",
     "check_links_resolve_to_existing_targets",
+    "check_note_unrecognized_pattern",
+    "check_note_placement_near_related_material",
+    "check_note_keyword_capitalized",
+    "check_note_starts_with_capital",
+    "check_note_dash_numbering_consistency",
+    "check_note_group_header_plural_for_multiple",
+    "check_note_numbering_without_dot",
 ]

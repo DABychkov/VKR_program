@@ -4,6 +4,7 @@ from .figure_validator import FigureValidator
 from .formula_validator import FormulaValidator
 from .general_requirements_validator import GeneralRequirementsValidator
 from .links_validator import LinksValidator
+from .notes_validator import NotesValidator
 from .table_validator import TableValidator
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "TableValidator",
     "FormulaValidator",
     "LinksValidator",
+    "NotesValidator",
 ]

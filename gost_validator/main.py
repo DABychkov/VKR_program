@@ -20,7 +20,7 @@ from gost_validator.validators.terms_validator import TermsValidator
 from gost_validator.validators.abbreviations_validator import AbbreviationsValidator
 from gost_validator.validators.references_validator import ReferencesValidator
 from gost_validator.validators.appendices_validator import AppendicesValidator
-from gost_validator.validators.general_validators import FigureValidator, FormulaValidator, GeneralRequirementsValidator, LinksValidator, TableValidator
+from gost_validator.validators.general_validators import FigureValidator, FormulaValidator, GeneralRequirementsValidator, LinksValidator, NotesValidator, TableValidator
 from gost_validator.models.validation_result import Severity
 
 
@@ -207,6 +207,7 @@ def debug_rich_document(file_path: str) -> None:
             "  "
             f"p={note.paragraph_index} "
             f"kind={note.note_kind} "
+            f"dot_after_num={note.has_dot_after_number} "
             f"num={note.item_number} "
             f"dash={note.has_dash_separator} "
             f"near_figure={note.near_figure_caption} "
@@ -276,6 +277,7 @@ def validate_document(file_path: str) -> None:
     service.register(TableValidator())
     service.register(FormulaValidator())
     service.register(LinksValidator())
+    service.register(NotesValidator())
 
     # Запускаем проверку
     results = service.validate(doc)

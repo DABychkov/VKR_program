@@ -40,6 +40,22 @@ def format_indexed_examples(
     return prefix + "; ".join(snippets) + "."
 
 
+def first_alpha_char(text: str) -> str | None:
+    """Возвращает первый буквенный символ строки или None."""
+    for ch in str(text or ""):
+        if ch.isalpha():
+            return ch
+    return None
+
+
+def get_paragraph_index(feature: Any, attr_name: str = "paragraph_index", default: int = -1) -> int:
+    """Безопасно получает paragraph index из rich-объекта."""
+    raw_index = getattr(feature, attr_name, None)
+    if raw_index is None:
+        return default
+    return int(raw_index)
+
+
 def is_bold(
     paragraph_feature: Any,
     min_bold_ratio: float = 0.5,

@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Any
 
+from ..common.rich_utils import first_alpha_char
+
 
 SERVICE_TABLE_SECTION_MARKERS = (
 	"ТЕРМИНЫ И ОПРЕДЕЛЕНИЯ",
@@ -39,13 +41,6 @@ def _table_title_tail(table: Any) -> str:
 	if not fragment:
 		return ""
 	return fragment.lstrip("-–—: ").strip()
-
-
-def _first_alpha_char(text: str) -> str | None:
-	for ch in text:
-		if ch.isalpha():
-			return ch
-	return None
 
 
 def has_table_title_name(table: Any) -> bool:
@@ -160,7 +155,7 @@ def check_table_title_capital_no_period(table_features: Iterable[Any]) -> list[i
 		if not tail:
 			continue
 
-		first_alpha = _first_alpha_char(tail)
+		first_alpha = first_alpha_char(tail)
 		starts_with_upper = bool(first_alpha and first_alpha.isupper())
 		ends_with_period = tail.endswith(".")
 
@@ -193,7 +188,7 @@ def check_table_header_cells_capital(table_features: Iterable[Any]) -> list[int]
 			text = str(getattr(cell, "text", "") or "").strip()
 			if not text:
 				continue
-			first_alpha = _first_alpha_char(text)
+			first_alpha = first_alpha_char(text)
 			if first_alpha is None:
 				continue
 			if first_alpha.isupper():

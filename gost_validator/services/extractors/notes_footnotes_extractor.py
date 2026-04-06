@@ -12,6 +12,7 @@ from ...config.regex_patterns import (
     RE_FIGURE_CAPTION,
     RE_NOTES_HEADER,
     RE_NOTES_ITEM,
+    RE_NOTES_ITEM_NUMBER_PREFIX,
     RE_NOTE_SINGLE,
     RE_NUMBERED_NOTE_SINGLE,
     RE_TABLE_CONTINUATION,
@@ -19,6 +20,49 @@ from ...config.regex_patterns import (
 )
 from ...models.rich_document_structure import FootnoteFeature, NoteFeature
 from .common import clean_text
+
+
+def _has_dot_after_number(text: str) -> bool | None:
+    """Возвращает флаг наличия точки после номера в начале строки примечания."""
+    match = RE_NOTES_ITEM_NUMBER_PREFIX.match(str(text or ""))
+    if not match:
+        return None
+    return match.group(2) == "."
+
+
+def _is_note_word_prefix(text: str) -> bool:
+    lowered = str(text or "").lower().strip()
+    return lowered.startswith("примечание") or lowered.startswith("примечания")
+
+
+def _has_numbered_item_in_next_non_empty_window(
+    paragraphs: list[str],
+    start_index: int,
+    *,
+    max_non_empty_lines: int = 3,
+) -> bool:
+    non_empty_seen = 0
+    for probe_index in range(start_index + 1, len(paragraphs)):
+        candidate = str(paragraphs[probe_index] or "").strip()
+        if not candidate:
+            continue
+
+        non_empty_seen += 1
+        if RE_NOTES_ITEM.match(candidate):
+            return True
+        if non_empty_seen >= max_non_empty_lines:
+            return False
+
+    return False
+
+
+def _extract_single_note_body_without_dash(text: str) -> str:
+    lowered = str(text or "").lower().strip()
+    if not lowered.startswith("примечание"):
+        return ""
+
+    body = str(text or "").strip()[len("Примечание") :].lstrip(" :\t")
+    return body.strip()
 
 
 def _near_material_flags(
@@ -146,8 +190,10 @@ def extract_notes_features(doc: Document) -> list[NoteFeature]:
             in_notes_group = False
             continue
 
+        near_figure, near_table = _near_material_flags(paragraph_index, figure_caption_indices, table_caption_indices)
+        near_material = near_figure or near_table
+
         if RE_NOTE_SINGLE.match(text):
-            near_figure, near_table = _near_material_flags(paragraph_index, figure_caption_indices, table_caption_indices)
             notes.append(
                 NoteFeature(
                     paragraph_index=paragraph_index,
@@ -163,13 +209,13 @@ def extract_notes_features(doc: Document) -> list[NoteFeature]:
 
         numbered_single_match = RE_NUMBERED_NOTE_SINGLE.match(text)
         if numbered_single_match:
-            near_figure, near_table = _near_material_flags(paragraph_index, figure_caption_indices, table_caption_indices)
             notes.append(
                 NoteFeature(
                     paragraph_index=paragraph_index,
                     raw_text=text,
                     note_kind="numbered_single",
                     item_number=int(numbered_single_match.group(1)),
+                    has_dot_after_number=_has_dot_after_number(text),
                     has_dash_separator=True,
                     near_figure_caption=near_figure,
                     near_table_caption=near_table,
@@ -179,30 +225,85 @@ def extract_notes_features(doc: Document) -> list[NoteFeature]:
             continue
 
         if RE_NOTES_HEADER.match(text):
-            near_figure, near_table = _near_material_flags(paragraph_index, figure_caption_indices, table_caption_indices)
+            has_numbered_after = _has_numbered_item_in_next_non_empty_window(
+                normalized_paragraphs,
+                paragraph_index,
+                max_non_empty_lines=3,
+            )
+            if has_numbered_after:
+                notes.append(
+                    NoteFeature(
+                        paragraph_index=paragraph_index,
+                        raw_text=text,
+                        note_kind="group_header",
+                        has_dash_separator=False,
+                        near_figure_caption=near_figure,
+                        near_table_caption=near_table,
+                    )
+                )
+                in_notes_group = True
+                continue
+
+        # fallback для "похожих на примечание" строк:
+        # применяем только рядом с таблицей/рисунком, чтобы не ловить обычный текст.
+        if near_material and _is_note_word_prefix(text):
+            has_numbered_after = _has_numbered_item_in_next_non_empty_window(
+                normalized_paragraphs,
+                paragraph_index,
+                max_non_empty_lines=3,
+            )
+            if has_numbered_after:
+                notes.append(
+                    NoteFeature(
+                        paragraph_index=paragraph_index,
+                        raw_text=text,
+                        note_kind="group_header",
+                        has_dash_separator=False,
+                        near_figure_caption=near_figure,
+                        near_table_caption=near_table,
+                    )
+                )
+                in_notes_group = True
+                continue
+
+            body_without_dash = _extract_single_note_body_without_dash(text)
+            if body_without_dash:
+                notes.append(
+                    NoteFeature(
+                        paragraph_index=paragraph_index,
+                        raw_text=text,
+                        note_kind="single",
+                        has_dash_separator=False,
+                        near_figure_caption=near_figure,
+                        near_table_caption=near_table,
+                    )
+                )
+                in_notes_group = False
+                continue
+
             notes.append(
                 NoteFeature(
                     paragraph_index=paragraph_index,
                     raw_text=text,
-                    note_kind="group_header",
-                    has_dash_separator=False,
+                    note_kind="unknown",
+                    has_dash_separator=None,
                     near_figure_caption=near_figure,
                     near_table_caption=near_table,
                 )
             )
-            in_notes_group = True
+            in_notes_group = False
             continue
 
         if in_notes_group:
             group_item_match = RE_NOTES_ITEM.match(text)
             if group_item_match:
-                near_figure, near_table = _near_material_flags(paragraph_index, figure_caption_indices, table_caption_indices)
                 notes.append(
                     NoteFeature(
                         paragraph_index=paragraph_index,
                         raw_text=text,
                         note_kind="group_item",
                         item_number=int(group_item_match.group(1)),
+                        has_dot_after_number=_has_dot_after_number(text),
                         has_dash_separator=None,
                         near_figure_caption=near_figure,
                         near_table_caption=near_table,
