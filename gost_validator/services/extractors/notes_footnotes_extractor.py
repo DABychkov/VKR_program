@@ -164,9 +164,152 @@ def _extract_footnote_separator_flags(doc: Document) -> tuple[bool | None, bool 
         separator_node.findall(".//w:separator", separator_node.nsmap)
         or separator_node.findall(".//w:pBdr/w:top", separator_node.nsmap)
     )
-    # Для стандартного Word separator считаем эвристику "короткая линия слева" положительной.
+    # Для встроенной xml-сноски опираемся на стандартный Word separator.
     short_left_heuristic = has_separator
     return has_separator, short_left_heuristic
+
+
+def _paragraph_has_visual_separator_line(paragraph: object) -> bool:
+    p = getattr(paragraph, "_p", None)
+    if p is None:
+        return False
+    text = str(getattr(paragraph, "text", "") or "").strip()
+
+    # Граница абзаца (горизонтальная линия через borders).
+    has_border_line = bool(
+        p.findall(".//w:pPr/w:pBdr/w:top", p.nsmap)
+        or p.findall(".//w:pPr/w:pBdr/w:bottom", p.nsmap)
+    )
+    if has_border_line:
+        return True
+
+    # Word иногда вставляет горизонтальную линию как drawing/pict объект.
+    has_drawing_line = bool(
+        p.findall(".//w:drawing", p.nsmap)
+        or p.findall(".//w:pict", p.nsmap)
+    )
+    # Для drawing/pict считаем линией только отдельный пустой абзац,
+    # чтобы не ловить обычные встроенные объекты в текстовых строках.
+    return has_drawing_line and not text
+
+
+def _parse_width_pt_from_style(style: str | None) -> float | None:
+    if not style:
+        return None
+
+    for token in str(style).split(";"):
+        normalized = token.strip().lower().replace(" ", "")
+        if not normalized.startswith("width:"):
+            continue
+        raw_value = normalized[len("width:") :]
+        if not raw_value.endswith("pt"):
+            continue
+        numeric_part = raw_value[:-2]
+        try:
+            return float(numeric_part)
+        except ValueError:
+            return None
+
+    return None
+
+
+def _text_width_pt(doc: Document) -> float | None:
+    try:
+        section = doc.sections[0]
+    except Exception:
+        return None
+
+    page_width = getattr(section, "page_width", None)
+    left_margin = getattr(section, "left_margin", None)
+    right_margin = getattr(section, "right_margin", None)
+    if page_width is None or left_margin is None or right_margin is None:
+        return None
+
+    width_pt = float(page_width.pt - left_margin.pt - right_margin.pt)
+    if width_pt <= 0:
+        return None
+    return width_pt
+
+
+def _custom_separator_short_heuristic(paragraph: object, doc: Document) -> bool | None:
+    p = getattr(paragraph, "_p", None)
+    if p is None:
+        return None
+
+    # 1) VML horizontal rule percent (наиболее надежный для вставленной Word линии).
+    office_ns = "{urn:schemas-microsoft-com:office:office}"
+    for rect in p.findall(".//v:rect", p.nsmap):
+        if (rect.get(f"{office_ns}hr") or "").lower() != "t":
+            continue
+
+        hrpct_raw = rect.get(f"{office_ns}hrpct")
+        if hrpct_raw is not None:
+            try:
+                hrpct_value = float(hrpct_raw)
+                # o:hrpct обычно хранится в десятых долях процента (405 => 40.5%).
+                ratio = hrpct_value / 10.0 if hrpct_value > 100 else hrpct_value
+                return ratio <= 60.0
+            except ValueError:
+                pass
+
+        width_pt = _parse_width_pt_from_style(rect.get("style"))
+        text_width = _text_width_pt(doc)
+        if width_pt is not None and text_width is not None:
+            return width_pt <= text_width * 0.6
+
+    # 2) Альтернативно пробуем drawing extent (если будет OOXML drawing линия).
+    for extent in p.findall(".//wp:extent", p.nsmap):
+        cx_raw = extent.get("cx")
+        if cx_raw is None:
+            continue
+        try:
+            width_emu = float(cx_raw)
+        except ValueError:
+            continue
+
+        # 1 pt = 12700 EMU.
+        width_pt = width_emu / 12700.0
+        text_width = _text_width_pt(doc)
+        if text_width is not None:
+            return width_pt <= text_width * 0.6
+
+    return None
+
+
+def _extract_custom_asterisk_separator_flags(doc: Document, paragraphs: list[object]) -> tuple[bool | None, bool | None]:
+    """Пытается определить наличие/короткость линии для кастомных звездочных сносок."""
+    body_indices = [
+        index
+        for index, paragraph in enumerate(paragraphs)
+        if RE_ASTERISK_FOOTNOTE_BODY.match(getattr(paragraph, "text", "") or "")
+    ]
+    if not body_indices:
+        return None, None
+
+    line_found = False
+    candidate_line_paragraphs: list[object] = []
+    for body_index in body_indices:
+        # Ищем линию перед текстом сноски: обычно это предыдущий абзац(ы).
+        start = max(0, body_index - 2)
+        end = min(len(paragraphs), body_index + 1)
+        for probe_index in range(start, end):
+            if _paragraph_has_visual_separator_line(paragraphs[probe_index]):
+                line_found = True
+                candidate_line_paragraphs.append(paragraphs[probe_index])
+                break
+        if line_found:
+            break
+
+    if not line_found:
+        return False, None
+
+    for paragraph in candidate_line_paragraphs:
+        short_value = _custom_separator_short_heuristic(paragraph, doc)
+        if short_value is not None:
+            return True, short_value
+
+    # Если линия обнаружена, но длину вычислить нельзя, оставляем heuristic=None.
+    return True, None
 
 
 def extract_notes_features(doc: Document) -> list[NoteFeature]:
@@ -319,17 +462,22 @@ def extract_footnote_features(doc: Document) -> list[FootnoteFeature]:
     """Извлекает маркеры сносок из body и связывает с /word/footnotes.xml."""
     footnote_features: list[FootnoteFeature] = []
     existing_footnote_ids = _extract_footnote_ids_from_part(doc)
-    has_separator_line, separator_short_left = _extract_footnote_separator_flags(doc)
+    xml_has_separator_line, xml_separator_short_left = _extract_footnote_separator_flags(doc)
 
     paragraphs = list(doc.paragraphs)
-    asterisk_body_count = sum(1 for paragraph in paragraphs if RE_ASTERISK_FOOTNOTE_BODY.match(paragraph.text or ""))
+    custom_has_separator_line, custom_separator_short_left = _extract_custom_asterisk_separator_flags(doc, paragraphs)
+    asterisk_body_indices = [
+        index
+        for index, paragraph in enumerate(paragraphs)
+        if RE_ASTERISK_FOOTNOTE_BODY.match(paragraph.text or "")
+    ]
     inline_asterisk_markers: list[int] = []
 
     for index, paragraph in enumerate(paragraphs):
         text = paragraph.text or ""
         inline_asterisk_markers.extend([index for _ in RE_ASTERISK_FOOTNOTE_INLINE_MARKER.finditer(text)])
 
-    has_asterisk_resolution = len(inline_asterisk_markers) > 0 and asterisk_body_count > 0
+    asterisk_body_cursor = 0
 
     for paragraph_index, paragraph in enumerate(paragraphs):
         paragraph_element = paragraph._p
@@ -358,13 +506,24 @@ def extract_footnote_features(doc: Document) -> list[FootnoteFeature]:
                     footnote_id=footnote_id,
                     custom_mark_follows=is_custom_marker,
                     resolved_in_footnotes_part=(footnote_id in existing_footnote_ids) if footnote_id is not None else None,
-                    has_separator_line=has_separator_line,
-                    separator_short_left_heuristic=separator_short_left,
+                    has_separator_line=xml_has_separator_line,
+                    separator_short_left_heuristic=xml_separator_short_left,
                 )
             )
 
         text = paragraph.text or ""
         for _ in RE_ASTERISK_FOOTNOTE_INLINE_MARKER.finditer(text):
+            # Резолвим каждый звездочный маркер в ближайшее тело сноски ниже по документу.
+            while (
+                asterisk_body_cursor < len(asterisk_body_indices)
+                and asterisk_body_indices[asterisk_body_cursor] <= paragraph_index
+            ):
+                asterisk_body_cursor += 1
+
+            has_asterisk_resolution = asterisk_body_cursor < len(asterisk_body_indices)
+            if has_asterisk_resolution:
+                asterisk_body_cursor += 1
+
             footnote_features.append(
                 FootnoteFeature(
                     paragraph_index=paragraph_index,
@@ -373,8 +532,8 @@ def extract_footnote_features(doc: Document) -> list[FootnoteFeature]:
                     footnote_id=None,
                     custom_mark_follows=None,
                     resolved_in_footnotes_part=has_asterisk_resolution,
-                    has_separator_line=has_separator_line,
-                    separator_short_left_heuristic=separator_short_left,
+                    has_separator_line=custom_has_separator_line,
+                    separator_short_left_heuristic=custom_separator_short_left,
                 )
             )
 

@@ -17,7 +17,7 @@ def _is_unknown_note(note: Any) -> bool:
 
 
 def _is_note_keyword_kind(note: Any) -> bool:
-    """NOTE-003 применяем только к single/group_header."""
+    """применяем только к single/group_header."""
     return _note_kind(note) in {"single", "group_header"}
 
 

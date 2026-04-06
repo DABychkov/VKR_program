@@ -137,6 +137,7 @@ RULES_CATALOG_BY_VALIDATOR: dict[str, list[RuleResult]] = {
     "FootnotesValidator": [
         RuleResult("FOOT-001", "СНОСКИ", "Маркер сноски резолвится", Severity.CRITICAL.value),
         RuleResult("FOOT-002", "СНОСКИ", "При наличии сносок обнаружена разделительная линия перед блоком сносок", Severity.CRITICAL.value),
+        RuleResult("FOOT-003", "СНОСКИ", "Разделительная линия короткая", Severity.CRITICAL.value),
     ],
     #93 правила и 15 валидаторов в сумме
 }

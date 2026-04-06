@@ -48,6 +48,15 @@ from .link_rules_utils import (
     check_links_resolve_to_existing_targets,
     check_table_link_before_table,
 )
+from .footnote_rules_utils import (
+    check_footnote_markers_resolved,
+    check_footnote_markers_resolution_unknown,
+    check_footnote_separator_present,
+    check_footnote_separator_short_left,
+    check_footnote_separator_short_left_unknown,
+    check_footnote_separator_unknown,
+    has_any_footnotes,
+)
 from .note_rules_utils import (
     check_note_dash_numbering_consistency,
     check_note_group_header_plural_for_multiple,
@@ -97,6 +106,13 @@ __all__ = [
     "has_formula_number",
     "check_figure_link_before_caption",
     "check_links_resolve_to_existing_targets",
+    "has_any_footnotes",
+    "check_footnote_markers_resolved",
+    "check_footnote_markers_resolution_unknown",
+    "check_footnote_separator_present",
+    "check_footnote_separator_short_left",
+    "check_footnote_separator_short_left_unknown",
+    "check_footnote_separator_unknown",
     "check_note_unrecognized_pattern",
     "check_note_placement_near_related_material",
     "check_note_keyword_capitalized",
