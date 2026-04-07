@@ -38,7 +38,6 @@ class ValidationResult:
         rule_id: str,
         status: str,
         message: str | None = None,
-        gost_ref: str = "0",
         implemented: bool = True,
     ) -> None:
         """Обновляет правило в rule_results (или добавляет, если его нет в каталоге)."""
@@ -64,7 +63,6 @@ class ValidationResult:
 
             rule.status = normalized_status
             rule.message = message
-            rule.gost_ref = gost_ref
             rule.implemented = implemented
 
             # Добавляем ошибку только если переходим в FAIL и еще не были в FAIL
@@ -84,7 +82,7 @@ class ValidationResult:
             severity=severity,
             status=normalized_status,
             message=message,
-            gost_ref=gost_ref,
+            gost_ref="0",
             implemented=implemented,
         )
         self.rule_results.append(new_rule)

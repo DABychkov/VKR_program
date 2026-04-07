@@ -36,8 +36,8 @@ class ReportAndListHandler:
         self.encoding = encoding
         self.strict_docx_extension = strict_docx_extension
 
-    def getList(self) -> list[RuleResult]:
-        """Возвращает сплошной список правил из rule_catalog без группировки."""
+    def getList(self) -> dict[str, list[dict[str, object]]]:
+        """Возвращает полный список правил в формате {'list': [...]} для фронта."""
         flat_rules: list[RuleResult] = []
         for rules in RULES_CATALOG_BY_VALIDATOR.values():
             for rule in rules:
@@ -55,10 +55,10 @@ class ReportAndListHandler:
                 )
         if self.encoding:
             print(f"getList: получено правил={len(flat_rules)}")
-        return flat_rules
+        return self.converter_result(flat_rules)
 
     def converter_result(self, rules: list[RuleResult]) -> dict[str, list[dict[str, object]]]:
-        """Конвертирует list[RuleResult] в JSON-совместимый payload для фронта."""
+        """Конвертирует list[RuleResult] в формат для фронта."""
         return {
             "list": [
                 {
@@ -75,29 +75,29 @@ class ReportAndListHandler:
             ]
         }
 
-    def validate(self, file_path: str) -> list[RuleResult]:
-        """Проверяет документ и возвращает общий список правил со статусами и сообщениями."""
+    def validate(self, file_path: str) -> dict[str, list[dict[str, object]]]:
+        """Проверяет документ и возвращает результат в формате {'list': [...]} для фронта."""
         if not file_path.strip():
             if self.encoding:
                 print("Путь к файлу пуст")
-            return []
+            return {"list": []}
 
         path = Path(file_path)
 
         if not path.exists():
             if self.encoding:
                 print(f"Файл не найден: {path}")
-            return []
+            return {"list": []}
 
         if not path.is_file():
             if self.encoding:
                 print(f"Это не файл: {path}")
-            return []
+            return {"list": []}
 
         if self.strict_docx_extension and path.suffix.lower() != ".docx":
             if self.encoding:
                 print(f"Ожидается .docx, получено: {path.suffix or '<без расширения>'}")
-            return []
+            return {"list": []}
 
         parser = DocumentParser()
         doc = parser.parse(str(path))
@@ -111,7 +111,7 @@ class ReportAndListHandler:
             failed_count = sum(1 for rule in flat_results if rule.status == "FAIL")
             print(f"validate: файл={path.name}, правил={len(flat_results)}, fail={failed_count}")
 
-        return flat_results
+        return self.converter_result(flat_results)
 
     def _build_validation_service(self) -> ValidationService:
         """Собирает ValidationService с тем же составом валидаторов, что и в main."""
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     handler = ReportAndListHandler(encoding=True)
 
     rules = handler.getList()
-    print(handler.converter_result(rules))
+    print(rules)
 
     result = handler.validate(DEFAULT_TEST_DOCX_PATH)
-    print(handler.converter_result(result))
+    print(result)
