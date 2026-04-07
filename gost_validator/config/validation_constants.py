@@ -1,5 +1,11 @@
 """Общие константы для валидации и парсинга документа."""
 
+from pathlib import Path
+
+# Путь к тестовому документу для локальных запусков.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_TEST_DOCX_PATH = str(PROJECT_ROOT / "uploads" / "document.docx")
+
 # Ключевые секции
 SECTION_CONTENTS = "СОДЕРЖАНИЕ"
 SECTION_ABSTRACT = "РЕФЕРАТ"
