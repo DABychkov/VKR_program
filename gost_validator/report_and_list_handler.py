@@ -57,6 +57,24 @@ class ReportAndListHandler:
             print(f"getList: получено правил={len(flat_rules)}")
         return flat_rules
 
+    def converter_result(self, rules: list[RuleResult]) -> dict[str, list[dict[str, object]]]:
+        """Конвертирует list[RuleResult] в JSON-совместимый payload для фронта."""
+        return {
+            "list": [
+                {
+                    "rule_id": rule.rule_id,
+                    "section": rule.section,
+                    "description": rule.description,
+                    "severity": rule.severity,
+                    "status": rule.status,
+                    "message": rule.message,
+                    "gost_ref": rule.gost_ref,
+                    "implemented": rule.implemented,
+                }
+                for rule in rules
+            ]
+        }
+
     def validate(self, file_path: str) -> list[RuleResult]:
         """Проверяет документ и возвращает общий список правил со статусами и сообщениями."""
         if not file_path.strip():
@@ -120,7 +138,7 @@ if __name__ == "__main__":
     handler = ReportAndListHandler(encoding=True)
 
     rules = handler.getList()
-    print(rules)
+    print(handler.converter_result(rules))
 
     result = handler.validate(DEFAULT_TEST_DOCX_PATH)
-    print(result)
+    print(handler.converter_result(result))
